@@ -21,7 +21,8 @@ The lab is built with structured tasks so that you may build the completed segme
 [Task 3 - EVPN Services ](task2/task2.md)   
 [Task 4 - Service VPN - OSPF routing ](task2/task2.md)  
 
-> [!NOTE] BONUS! [Task 5 - SR Traffic Engineering ](task2/task2.md)   
+> [!NOTE]
+> BONUS! [Task 5 - SR Traffic Engineering ](task2/task2.md)   
 
  
 # The Topology 

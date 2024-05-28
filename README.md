@@ -1,10 +1,10 @@
-# Cisco Live 2024 - SR-MPLS 101 - LTRMPL-1001
+# Cisco Live 2024 - SR-MPLS 101 - LTRMPL-1201
 
 <img src="images/clus.png" width="900">
 
 # Introduction 
 
-<font size=4><b>Welcome to SR-MPLS 101! </b></font>
+<font size=4><b>Welcome to SR-MPLS 101 - LTRMPL-1201! </b></font>
 
 This lab was created to provide a *minimal* approach to learning segment routing and some of the foudational concepts around it. 
 
@@ -47,7 +47,9 @@ sr-pe001    | 198.19.128.52         | admin     |   cisco       | xr9kv
 sr-pe002    | 198.19.128.53         | admin     |   cisco       | xr9kv
 sr-rtr001   | 198.18.128.60         | admin     |   cisco       | IOSv
 sr-rtr002   | 198.18.128.61         | admin     |   cisco       | IOSv
-cml001      | https://198.19.128.100| admin     |   cisco123!   | CML node
+server001   | 198.18.128.70         | admin     |   cisco       | Linux
+server002   | 198.18.128.71         | admin     |   cisco       | Linux
+cml001      | https://198.18.128.100| admin     |   cisco123!   | CML node
 webrdp      | 198.18.133.11         | root      |   C1sco12345  | xr9kv
 
 

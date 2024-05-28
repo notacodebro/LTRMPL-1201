@@ -95,8 +95,8 @@ GigabitEthernet0/0/0/3         10.1.1.1        Up              Up       default
 
 The interfaces with ip addresses in the default vrf will need to be added to Area 0.  Proceed to add the interfaces on each router to OSPF Area 0 and commit your changes.     
 
-```bash
 Here is the configuration for sr-p001:
+```bash
 (config-ospf)#area 0
 (config-ospf-ar)#int g0/0/0/0
 (config-ospf-ar-if)#exit
@@ -306,7 +306,7 @@ In addition to the adjacency-sids, we also see the prefix sids that we configure
  ```
  > [!NOTE]
  >This command will deliver a lot of data that is outside the scope of this lab, but will give you extra information for future troubleshooting and understanding of the SR-MPLS forwarding plane.
- 
+
  </pre></code></details> <br>
 
 Let's investigate the OSPF SID databaset to ensure we can see our neighbors prefix-sid's for their loopbacks 

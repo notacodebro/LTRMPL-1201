@@ -73,8 +73,9 @@ Sr-pe002: 4.4.4.4/32
 !see list above for ip address for each router
 Return to ospf configuration mode and commit changes made thus far.
 
-(config-if#router ospf 1
-(config-ospf# commit
+(config-if)#router ospf 1
+(config-ospf)# commit
+
 ```
 
 Review the ip addresses of each P and PE router.

@@ -13,7 +13,7 @@ Run the following script on sr-pe001:
 ```bash
 config
 segment-routing
-traffic-engineering
+traffic-eng
 segment-list 1to2extrahop
 index 10 mpls label 16001
 index 20 mpls label 16002
@@ -33,7 +33,7 @@ Run this script on sr-p001:
 ```bash
 conf
 segment-routing
-traffic-engineering
+traffic-eng
 policy my_first_SR-TE-policy
 color 5001 end-point ipv4 4.4.4.4
 candidate-paths
@@ -49,7 +49,7 @@ The last step  actually requires two tasks: create a psuedowire-class with the p
 Recall that the router will identify the SR-TE policy by the tuple naming standard, not the friendly name of 'my_first_SR-TE_policy'.  Discover the router's name of the policy with a show command:
 
 ```bash
-show segment-routing traffic-engineering policy color 5001
+show segment-routing traffic-eng policy color 5001
 ```
 ```angular2html
 SR-TE policy database
@@ -120,7 +120,7 @@ Log in to server001 and ping server002, 10.10.1.2.  If the ping is working, let 
 
 Verify 'my_first_SR-TE_policy' is operational on sr-pe001:
 ```bash
-show segment-routing traffic-engineering policy color 5001
+show segment-routing traffic-eng policy color 5001
 ```
 ```angular2html
 SR-TE policy database

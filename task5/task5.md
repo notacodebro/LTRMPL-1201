@@ -29,7 +29,7 @@ As you  may have observed, you need a color and the endpoint to uniquely identif
 
 Every policy consists of at least one candidate path.  The router will calculate the validity of a candidate path and will use the valid path with the highest preference.  If a candidate path becomes invalid at any time for any reason, it wil lbe marked operationally down and the next candidate path will be used.  If there are no valid candidate paths available, the default behavior will be to use the IGP.  It is possible to force the policy to drop packets in the event there are no valid paths.
 
-Run this script on sr-p001:
+Run this script on sr-pe001:
 ```bash
 conf
 segment-routing

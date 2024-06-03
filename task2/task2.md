@@ -58,11 +58,11 @@ Process       RcvTblVer   bRIB/RIB   LabelVer  ImportVer  SendTblVer  StandbyVer
 Speaker               1          1          1          0           1           0
 
 Neighbor        Spk    AS MsgRcvd MsgSent   TblVer  InQ OutQ  Up/Down  St/PfxRcd
-3.3.3.3           0 65001       0       0        0    0    0 00:00:00 Idle
-4.4.4.4           0 65001       0       0        0    0    0 00:00:00 Idle
+3.3.3.3           0 65001       0       0        0    0    0 00:00:00 Active
+4.4.4.4           0 65001       0       0        0    0    0 00:00:00 Active
 ```
 
-Each BGP session should be in the **Idle** state. 
+Each BGP session should be in the **Active** state. 
 
 ## Step 2 - Configure sr-pe001 and sr-pe002
 
@@ -86,7 +86,7 @@ On sr-pe002:
 ```bash
 RP/0/RP0/CPU0:sr-pe002#conf
 RP/0/RP0/CPU0:sr-pe002(config)#router bgp 65001
-RP/0/RP0/CPU0:sr-pe002(config-bgp)#bgp router-id 3.3.3.3
+RP/0/RP0/CPU0:sr-pe002(config-bgp)#bgp router-id 4.4.4.4
 RP/0/RP0/CPU0:sr-pe002(config-bgp)#address-family l2vpn evpn
 RP/0/RP0/CPU0:sr-pe002(config-bgp-af)#exit
 RP/0/RP0/CPU0:sr-pe002(config-bgp)#neighbor 1.1.1.1

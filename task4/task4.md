@@ -220,4 +220,4 @@ Success rate is 100 percent (5/5), round-trip min/avg/max = 4/4/5 ms
 ```
 You have now completed Task 4.  With this task, you have successfully created a Layer 2 adjacency between two L3 switches.  These two switches created an OSPF L3 adjacency across that L2 circuit and have shared their respective routing tables with one another.  If there is time, please continue to our Bonus Task, Task 5!
 
-[Prev Task](/../main/task3/task3.md)                                          [Next Task](/../main/task5/task5.md) 
+[Prev Task](../task3/task3.md) | [Next Task](../task5/task5.md) 

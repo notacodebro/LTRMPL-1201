@@ -190,4 +190,4 @@ sr-pe001    | sr-pe001
 sr-pe002    | sr-pe002
 sr-p002     | sr-p001
 
-[Prev Task](/../main/task1/task1.md)                                          [Next Task](/../main/task3/task3.md) 
+[Prev Task](../task1/task1.md) | [Next Task](../task3/task3.md) 

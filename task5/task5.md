@@ -170,4 +170,4 @@ If you find a packet with a single label value in the label stack with a dynamic
 
 That's it!  Congratulations.  You've successfully built an Underlay, Overlay, two EVPN services, and an SR-TE policy.  There's much more to learn, but we hope we have created a good understanding for you, and that you have a good starting point with this lab.
 
-[Prev Task](/../main/task4/task4.md)                                          [Home](/../main/) 
+[Prev Task](../task4/task4.md) | [Home](../README.md) 

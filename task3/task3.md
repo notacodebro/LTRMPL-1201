@@ -281,5 +281,4 @@ Node sr-p002 is the penultimate hop for sr-pe002.  Accordingly, sr-p002 has remo
 Return to server001 and stop the ping.
 
 
-[Prev Task](/../main/task1/task1.md)                                          [Next Task](/../main/task4/task4.md) 
-
+[Prev Task](..task2/task2.md) | [Next Task](../task4/task4.md) 

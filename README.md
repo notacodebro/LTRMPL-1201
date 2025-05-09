@@ -77,4 +77,4 @@ If you chose to connect to the lab with  RDP/WebRDP you will be using a virtual 
 Now that you have a handle on the lab details and connectivity requirements its time to start working on your [Tasks](#Task-Summary)
 
 
-[Next Task](/../main/task1/task1.md) 
+[Next Task](task1/task1.md) 

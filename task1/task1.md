@@ -340,4 +340,4 @@ SID          Prefix/Mask
 
  As you can see from the output above, all SIDs we configured on all the routers are present in the OSPF sid-database. You should see similar output on all routers.
  
-[Prev Task](/../main/)                                            [Next Task](/../main/task2/task2.md) 
+[Prev Task](../README.md) | [Next Task](../task2/task2.md) 

@@ -7,21 +7,21 @@ Create the EVPN service.  Use the following information to create your EVPN:
 EVI:  1002
 sr-pe001 AC-ID: 11002
 sr-pe002 AC-ID: 21002
-AC interface ID of both routers: Gi0/0/0/2
+AC interface ID of both routers: Hu0/0/0/2
 dot1q tag:  untagged
 ```
 On sr-pe001:
 ```bash
 config
-int gi0/0/0/2
+int hu0/0/0/2
 no shut
-int gi0/0/0/2.1 l2transport
+int hu0/0/0/2.1 l2transport
 encapsulation untagged
 no shut
 l2vpn
-xconnect group switches
+xconnect group routers
 p2p UNTAGGED
-interface gi0/0/0/2.1
+interface hu0/0/0/2.1
 neighbor evpn evi 1002 target 21002 source 11002
 commit
 end
@@ -29,15 +29,15 @@ end
 On sr-pe002:
 ```bash
 config
-int gi0/0/0/2
+int hu0/0/0/2
 no shut
-int gi0/0/0/2.1 l2transport
+int hu0/0/0/2.1 l2transport
 encapsulation untagged
 no shut
 l2vpn
-xconnect group switches
+xconnect group routers
 p2p UNTAGGED
-interface gi0/0/0/2.1
+interface hu0/0/0/2.1
 neighbor evpn evi 1002 target 11002 source 21002
 commit
 end
@@ -107,18 +107,29 @@ show bgp l2vpn evpn
 Status codes: s suppressed, d damped, h history, * valid, > best
 i - internal, r RIB-failure, S stale, N Nexthop-discard
 Origin codes: i - IGP, e - EGP, ? - incomplete
-Network                                     Next Hop Metric LocPrf Weight Path
+   Network            Next Hop            Metric LocPrf Weight Path
 Route Distinguisher: 3.3.3.3:1001 (default for vrf VPWS:1001)
-*> [1][0000.0000.0000.0000.0000][11001]/120 0.0.0.0                 0       i
-*>i[1][0000.0000.0000.0000.0000][21001]/120 4.4.4.4         100     0       i 
-Route Distinguisher: 3.3.3.3:1002 (default for vrf VPWS:1002) 
-*> [1][0000.0000.0000.0000.0000][11002]/120 0.0.0.0                 0       i
-*>i[1][0000.0000.0000.0000.0000][21002]/120 4.4.4.4         100     0       i
+Route Distinguisher Version: 6
+*> [1][0000.0000.0000.0000.0000][11001]/120
+                      0.0.0.0                                0 i
+*>i[1][0000.0000.0000.0000.0000][21001]/120
+                      4.4.4.4                       100      0 i
+Route Distinguisher: 3.3.3.3:1002 (default for vrf VPWS:1002)
+Route Distinguisher Version: 9
+*> [1][0000.0000.0000.0000.0000][11002]/120
+                      0.0.0.0                                0 i
+*>i[1][0000.0000.0000.0000.0000][21002]/120
+                      4.4.4.4                       100      0 i
 Route Distinguisher: 4.4.4.4:1001
-*>i[1][0000.0000.0000.0000.0000][21001]/120 4.4.4.4         100     0       i 
-Route Distinguisher: 4.4.4.4:1002 
-*>i[1][0000.0000.0000.0000.0000][21002]/120 4.4.4.4         100     0       i
-Processed 6 prefixes, 6 paths
+Route Distinguisher Version: 5
+*>i[1][0000.0000.0000.0000.0000][21001]/120
+                      4.4.4.4                       100      0 i
+* i                   4.4.4.4                       100      0 i
+Route Distinguisher: 4.4.4.4:1002
+Route Distinguisher Version: 8
+*>i[1][0000.0000.0000.0000.0000][21002]/120
+                      4.4.4.4                       100      0 i
+* i                   4.4.4.4                       100      0 i
 ```
 Yes, the local router is advertising RD 3.3.3.3:1002 and is receiving RD 4.4.4.4:1002.
 
@@ -128,23 +139,25 @@ show mpls forwarding
 ```
 ```angular2html
 Thu May 2 14:28:42.211 UTC
-Local Outgoing   Prefix        Outgoing   Next Hop   Bytes
-Label   Label   or ID          Interface           Switched
+Local  Outgoing    Prefix             Outgoing     Next Hop        Bytes       
+Label  Label       or ID              Interface                    Switched    
 ------ ----------- ------------------ ------------ --------------- ------------
-16001   Pop     SR Pfx (idx 1) Gi0/0/0/0 10.1.11.1 105642
-        16001   SR Pfx (idx 1) Gi0/0/0/1 10.1.21.1 0 (!)
-16002   Pop     SR Pfx (idx 2) Gi0/0/0/1 10.1.21.1 0
-        16002   SR Pfx (idx 2) Gi0/0/0/0 10.1.11.1 0 (!)
-16004   16004   SR Pfx (idx 4) Gi0/0/0/0 10.1.11.1 7169
-        16004   SR Pfx (idx 4) Gi0/0/0/1 10.1.21.1 185444
-24000   Pop     SR Adj (idx 0) Gi0/0/0/0 10.1.11.1 0
-24001   Pop     SR Adj (idx 0) Gi0/0/0/0 10.1.11.1 0
-        16001   SR Adj (idx 0) Gi0/0/0/1 10.1.21.1 0 (!)
-24002   Pop     SR Adj (idx 0) Gi0/0/0/1 10.1.21.1 0
-24003   Pop     SR Adj (idx 0) Gi0/0/0/1 10.1.21.1 0
-        16002   SR Adj (idx 0) Gi0/0/0/0 10.1.11.1 0 (!)
-24004   Pop     PW(EVI=1001 AC-ID=21001) Gi0/0/0/4.1 point2point 178052 
-24005   Pop     PW(EVI=1002 AC-ID=21002) Gi0/0/0/2.1 point2point 6989
+16001  Pop         SR Pfx (idx 1)     Hu0/0/0/0    10.1.11.1       0           
+       16001       SR Pfx (idx 1)     Hu0/0/0/1    10.1.21.1       0            (!)
+16002  Pop         SR Pfx (idx 2)     Hu0/0/0/1    10.1.21.1       0           
+       16002       SR Pfx (idx 2)     Hu0/0/0/0    10.1.11.1       0            (!)
+16004  16004       SR Pfx (idx 4)     Hu0/0/0/0    10.1.11.1       33952       
+       16004       SR Pfx (idx 4)     Hu0/0/0/1    10.1.21.1       34160       
+24000  Pop         SR Adj (idx 0)     Hu0/0/0/1    10.1.21.1       0           
+24001  Pop         SR Adj (idx 0)     Hu0/0/0/1    10.1.21.1       0           
+       16002       SR Adj (idx 0)     Hu0/0/0/0    10.1.11.1       0            (!)
+24002  Pop         SR Adj (idx 0)     Hu0/0/0/0    10.1.11.1       0           
+24003  Pop         SR Adj (idx 0)     Hu0/0/0/0    10.1.11.1       0           
+       16001       SR Adj (idx 0)     Hu0/0/0/1    10.1.21.1       0            (!)
+24004  Pop         PW(EVI=1001 AC-ID=21001)   \
+                                      Hu0/0/0/4.1  point2point     0           
+24005  Pop         PW(EVI=1002 AC-ID=21002)   \
+                                      Hu0/0/0/2.1  point2point     0 
 ```
 
 The new service on the remote node has a label of 24005, and its in our MPLS table.
@@ -186,13 +199,13 @@ show ip route
 ```
 ```angular2html
 <snip>
-10.0.0.0/8 is variably subnetted, 2 subnets, 2 masks
-C       10.10.2.0/24 is directly connected, GigabitEthernet0/2
-L       10.10.2.2/32 is directly connected, GigabitEthernet0/2
-33.0.0.0/32 is subnetted, 1 subnets
-O IA    33.33.33.33 [110/2] via 10.10.2.1, 00:04:14, GigabitEthernet0/2
-44.0.0.0/32 is subnetted, 1 subnets
-C       44.44.44.44 is directly connected, Loopback0
+      10.0.0.0/8 is variably subnetted, 2 subnets, 2 masks
+C        10.10.2.0/24 is directly connected, GigabitEthernet0/2
+L        10.10.2.1/32 is directly connected, GigabitEthernet0/2
+      33.0.0.0/32 is subnetted, 1 subnets
+C        33.33.33.33 is directly connected, Loopback0
+      44.0.0.0/32 is subnetted, 1 subnets
+O IA     44.44.44.44 [110/2] via 10.10.2.2, 00:03:24, GigabitEthernet0/2
 ```
 Now ping from sr-rtr001's loopback to sr-rtr002's loopback:
 ```bash
@@ -206,3 +219,5 @@ Packet sent with a source address of 33.33.33.33
 Success rate is 100 percent (5/5), round-trip min/avg/max = 4/4/5 ms
 ```
 You have now completed Task 4.  With this task, you have successfully created a Layer 2 adjacency between two L3 switches.  These two switches created an OSPF L3 adjacency across that L2 circuit and have shared their respective routing tables with one another.  If there is time, please continue to our Bonus Task, Task 5!
+
+[Prev Task](/../main/task3/task3.md)                                          [Next Task](/../main/task5/task5.md) 

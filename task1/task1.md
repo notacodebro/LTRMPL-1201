@@ -57,12 +57,13 @@ The last two items we need to configure in the global OSPF context before we beg
 
 ## Step 2 - Add Loopbacks, Configure Area backbone area
 
-In this step you will add a loopback to each router except for sr-p001. The loopback is critical for both underlay and overlay control and dataplane operations. 
+In this step you will add a loopback to each router.  The loopback is critical for both underlay and overlay control and dataplane operations. 
 
 1. Configure loopbacks
 
 Use the following addresses for each P and PE router, respectively:
 ``` bash 
+Sr-p001: 1.1.1.1/32
 Sr-p002: 2.2.2.2/32
 Sr-pe001: 3.3.3.3/32
 Sr-pe002: 4.4.4.4/32  
@@ -81,29 +82,32 @@ Return to ospf configuration mode and commit changes made thus far.
 Review the ip addresses of each P and PE router.
 
 <details><summary><font size=4> Expand for Loopback Validation  </summary><pre><code></font>
-RP/0/RP0/CPU0:sr-p001#sh ip int brief
+RP/0/RP0/CPU0:sr-p001#show ip int br
+Wed May  7 15:33:42.470 UTC
 
 Interface                      IP-Address      Status          Protocol Vrf-Name
-Loopback0                      1.1.1.1         Up              Up       default 
-MgmtEth0/RP0/CPU0/0            198.18.128.50   Up              Up       mgmt    
-GigabitEthernet0/0/0/0         10.1.11.1       Up              Up       default 
-GigabitEthernet0/0/0/1         10.1.12.1       Up              Up       default 
-GigabitEthernet0/0/0/2         unassigned      Shutdown        Down     default 
-GigabitEthernet0/0/0/3         10.1.1.1        Up              Up       default
+Loopback0                      1.1.1.1         Up              Up       default
+HundredGigE0/0/0/0             10.1.11.1       Up              Up       default
+HundredGigE0/0/0/1             10.1.21.1       Up              Up       default
+HundredGigE0/0/0/2             unassigned      Shutdown        Down     default
+HundredGigE0/0/0/3             10.1.33.1       Up              Up       default
+HundredGigE0/0/0/4             unassigned      Shutdown        Down     default
+HundredGigE0/0/0/5             unassigned      Shutdown        Down     default
+
 </pre></code></details> <br>
 
 2. Configure OSPF on each interface
 
-The interfaces with ip addresses in the default vrf will need to be added to Area 0.  Proceed by adding the interfaces on each router to OSPF Area 0 and commit your changes.     
+The interfaces with ip addresses in the default vrf will need to be added to Area 0.  Proceed by adding the interfaces on each router to OSPF Area 0 and commit your changes.  Do this for all P and PE routers.   
 
 Here is the configuration for sr-p001:
 ```bash
 (config-ospf)#area 0
-(config-ospf-ar)#int g0/0/0/0
+(config-ospf-ar)#int hu0/0/0/0
 (config-ospf-ar-if)#exit
-(config-ospf-ar)#int g0/0/0/1
+(config-ospf-ar)#int hu0/0/0/1
 (config-ospf-ar-if)#exit
-(config-ospf-ar)#int g0/0/0/3
+(config-ospf-ar)#int hu0/0/0/3
 (config-ospf-ar-if)#exit
 (config-ospf-ar)#int lo0
 (config-ospf-ar)#commit
@@ -115,7 +119,6 @@ Here are the prefix-sid absolute values for each node.  Configure these values, 
 
 Device      |  Label      
 ----------  | :------------ 
-sr-p001     | 16001  
 Sr-p001     | 16001   
 Sr-p002     | 16002   
 Sr-pe001    | 16003   
@@ -149,11 +152,11 @@ RP/0/RP0/CPU0:sr-p001#sh ospf nei
 Neighbors for OSPF 1
 
 Neighbor ID     Pri   State           Dead Time   Address         Interface
-3.3.3.3         1     FULL/  -        00:00:33    10.1.11.2       GigabitEthernet0/0/0/0
+3.3.3.3         1     FULL/  -        00:00:33    10.1.11.2       HundredGigE0/0/0/0
     Neighbor is up for 00:03:02
-10.1.22.2       1     FULL/  -        00:00:39    10.1.12.2       GigabitEthernet0/0/0/1
+10.1.22.2       1     FULL/  -        00:00:39    10.1.12.2       HundredGigE0/0/0/1
     Neighbor is up for 00:02:52
-2.2.2.2         1     FULL/  -        00:00:31    10.1.1.2        GigabitEthernet0/0/0/3
+2.2.2.2         1     FULL/  -        00:00:31    10.1.1.2        HundredGigEt0/0/0/3
     Neighbor is up for 00:02:54
 ```
 
@@ -169,11 +172,11 @@ RP/0/RP0/CPU0:sr-p002#show ospf nei
 Neighbors for OSPF 1
 
 Neighbor ID     Pri   State           Dead Time   Address         Interface
-10.1.22.2       1     FULL/  -        00:00:39    10.1.22.2       GigabitEthernet0/0/0/0
+10.1.22.2       1     FULL/  -        00:00:39    10.1.22.2       HundredGigE0/0/0/0
     Neighbor is up for 00:03:25
-3.3.3.3         1     FULL/  -        00:00:36    10.1.21.2       GigabitEthernet0/0/0/1
+3.3.3.3         1     FULL/  -        00:00:36    10.1.21.2       HundredGigE0/0/0/1
     Neighbor is up for 00:03:31
-1.1.1.1         1     FULL/  -        00:00:31    10.1.1.1        GigabitEthernet0/0/0/3
+1.1.1.1         1     FULL/  -        00:00:31    10.1.1.1        HundredGigE0/0/0/3
     Neighbor is up for 00:03:28
 ```
 
@@ -186,9 +189,9 @@ RP/0/RP0/CPU0:sr-pe001#sh ospf nei
 Neighbors for OSPF 1
 
 Neighbor ID     Pri   State           Dead Time   Address         Interface
-1.1.1.1         1     FULL/  -        00:00:38    10.1.11.1       GigabitEthernet0/0/0/0
+1.1.1.1         1     FULL/  -        00:00:38    10.1.11.1       HundredGigE0/0/0/0
     Neighbor is up for 00:00:22
-2.2.2.2         1     FULL/  -        00:00:38    10.1.21.1       GigabitEthernet0/0/0/1
+2.2.2.2         1     FULL/  -        00:00:38    10.1.21.1       HundredGigE0/0/0/1
     Neighbor is up for 00:00:17
 ```
 ```bash
@@ -200,9 +203,9 @@ RP/0/RP0/CPU0:sr-pe002#show ospf nei
 Neighbors for OSPF 1
 
 Neighbor ID     Pri   State           Dead Time   Address         Interface
-2.2.2.2         1     FULL/  -        00:00:37    10.1.22.1       GigabitEthernet0/0/0/0
+2.2.2.2         1     FULL/  -        00:00:37    10.1.22.1       HundredGigE0/0/0/0
     Neighbor is up for 00:03:50
-1.1.1.1         1     FULL/  -        00:00:35    10.1.12.1       GigabitEthernet0/0/0/1
+1.1.1.1         1     FULL/  -        00:00:35    10.1.12.1       HundredGigE0/0/0/1
     Neighbor is up for 00:03:51
 
 Total neighbor count: 2
@@ -226,16 +229,25 @@ Codes: C - connected, S - static, R - RIP, B - BGP, (>) - Diversion path
        U - per-user static route, o - ODR, L - local, G  - DAGR, l - LISP
        A - access/subscriber, a - Application route
        M - mobile route, r - RPL, t - Traffic Engineering, (!) - FRR Backup path
+       s - local SRv6 route, z - local IID route
 
 Gateway of last resort is not set
 
-L    1.1.1.1/32 is directly connected, 01:43:13, Loopback0
-O    2.2.2.2/32 [110/3] via 10.1.11.2, 00:06:13, GigabitEthernet0/0/0/0 (!)
-                [110/2] via 10.1.1.2, 00:06:13, GigabitEthernet0/0/0/3
-O    3.3.3.3/32 [110/2] via 10.1.11.2, 00:06:13, GigabitEthernet0/0/0/0
-                [110/3] via 10.1.1.2, 00:06:13, GigabitEthernet0/0/0/3 (!)
-O    4.4.4.4/32 [110/3] via 10.1.1.2, 00:06:06, GigabitEthernet0/0/0/3 (!)
-                [110/2] via 10.1.12.2, 00:06:06, GigabitEthernet0/0/0/1
+L    1.1.1.1/32 is directly connected, 00:08:25, Loopback0
+O    2.2.2.2/32 [110/3] via 10.1.11.2, 00:02:26, HundredGigE0/0/0/0 (!)
+                [110/2] via 10.1.33.2, 00:02:26, HundredGigE0/0/0/3
+O    3.3.3.3/32 [110/2] via 10.1.11.2, 00:02:26, HundredGigE0/0/0/0
+                [110/3] via 10.1.33.2, 00:02:26, HundredGigE0/0/0/3 (!)
+O    4.4.4.4/32 [110/2] via 10.1.21.2, 00:02:26, HundredGigE0/0/0/1
+                [110/3] via 10.1.33.2, 00:02:26, HundredGigE0/0/0/3 (!)
+C    10.1.11.0/30 is directly connected, 04:31:47, HundredGigE0/0/0/0
+L    10.1.11.1/32 is directly connected, 04:31:47, HundredGigE0/0/0/0
+C    10.1.21.0/30 is directly connected, 04:31:47, HundredGigE0/0/0/1
+L    10.1.21.1/32 is directly connected, 04:31:47, HundredGigE0/0/0/1
+O    10.1.22.0/30 [110/2] via 10.1.21.2, 00:02:26, HundredGigE0/0/0/1
+                  [110/2] via 10.1.33.2, 00:02:26, HundredGigE0/0/0/3
+C    10.1.33.0/30 is directly connected, 04:31:47, HundredGigE0/0/0/3
+L    10.1.33.1/32 is directly connected, 04:31:47, HundredGigE0/0/0/3
 <snip>
 ```
 > [!IMPORTANT]
@@ -252,34 +264,35 @@ On each router, inspect the MPLS forwarding table:
 ```bash
 RP/0/RP0/CPU0:sr-p001# sh mpls forwarding
 
-Local  Outgoing    Prefix             Outgoing     Next Hop        Bytes
-Label  Label       or ID              Interface                    Switched
+Local  Outgoing    Prefix             Outgoing     Next Hop        Bytes       
+Label  Label       or ID              Interface                    Switched    
 ------ ----------- ------------------ ------------ --------------- ------------
-16002  Pop         SR Pfx (idx 2)     Gi0/0/0/3    10.1.1.2        0
-       16002       SR Pfx (idx 2)     Gi0/0/0/0    10.1.11.2       0            (!)
-16003  Pop         SR Pfx (idx 3)     Gi0/0/0/0    10.1.11.2       0
-       16003       SR Pfx (idx 3)     Gi0/0/0/3    10.1.1.2        0            (!)
-16004  Pop         SR Pfx (idx 4)     Gi0/0/0/1    10.1.12.2       0
-       16004       SR Pfx (idx 4)     Gi0/0/0/3    10.1.1.2        0            (!)
-24000  Pop         SR Adj (idx 0)     Gi0/0/0/0    10.1.11.2       0
-24001  Pop         SR Adj (idx 0)     Gi0/0/0/0    10.1.11.2       0
-       16003       SR Adj (idx 0)     Gi0/0/0/3    10.1.1.2        0            (!)
-24002  Pop         SR Adj (idx 0)     Gi0/0/0/3    10.1.1.2        0
-24003  Pop         SR Adj (idx 0)     Gi0/0/0/3    10.1.1.2        0
-       16002       SR Adj (idx 0)     Gi0/0/0/0    10.1.11.2       0            (!)
-24004  Pop         SR Adj (idx 0)     Gi0/0/0/1    10.1.12.2       0
-24005  Pop         SR Adj (idx 0)     Gi0/0/0/1    10.1.12.2       0
+16002  Pop         SR Pfx (idx 2)     Hu0/0/0/3    10.1.33.2       0           
+       16002       SR Pfx (idx 2)     Hu0/0/0/0    10.1.11.2       0            (!)
+16003  Pop         SR Pfx (idx 3)     Hu0/0/0/0    10.1.11.2       0           
+       16003       SR Pfx (idx 3)     Hu0/0/0/3    10.1.33.2       0            (!)
+16004  Pop         SR Pfx (idx 4)     Hu0/0/0/1    10.1.21.2       0           
+       16004       SR Pfx (idx 4)     Hu0/0/0/3    10.1.33.2       0            (!)
+24000  Pop         SR Adj (idx 0)     Hu0/0/0/1    10.1.21.2       0           
+24001  Pop         SR Adj (idx 0)     Hu0/0/0/1    10.1.21.2       0           
+       16004       SR Adj (idx 0)     Hu0/0/0/3    10.1.33.2       0            (!)
+24002  Pop         SR Adj (idx 0)     Hu0/0/0/0    10.1.11.2       0           
+24003  Pop         SR Adj (idx 0)     Hu0/0/0/0    10.1.11.2       0           
+       16003       SR Adj (idx 0)     Hu0/0/0/3    10.1.33.2       0            (!)
+24004  Pop         SR Adj (idx 0)     Hu0/0/0/3    10.1.33.2       0           
+24005  Pop         SR Adj (idx 0)     Hu0/0/0/3    10.1.33.2       0           
+       16002       SR Adj (idx 0)     Hu0/0/0/0    10.1.11.2       0            (!)
 ```
 
 In the example output from sr-p001, we see the dynamic adjacency-sid labels assigned to the interfaces that are participating in MPLS forwarding below.  These dynamic labels are in the **24000** and up range. We enabled all interfaces for MPLS forwarding when we configured ‘segment-routing forwarding mpls’ at the global OSPF level then configured all interfaces in the area 0 sub-context.  We also see some adjacencies as protected with the ‘(!)’.  **These are built by FRR TI-LFA**.
 
 ```
-16002  Pop         SR Pfx (idx 2)     Gi0/0/0/3    10.1.1.2        0
-       16002       SR Pfx (idx 2)     Gi0/0/0/0    10.1.11.2       0            (!)
-16003  Pop         SR Pfx (idx 3)     Gi0/0/0/0    10.1.11.2       0
-       16003       SR Pfx (idx 3)     Gi0/0/0/3    10.1.1.2        0            (!)
-16004  Pop         SR Pfx (idx 4)     Gi0/0/0/1    10.1.12.2       0
-       16004       SR Pfx (idx 4)     Gi0/0/0/3    10.1.1.2        0            (!)
+16002  Pop         SR Pfx (idx 2)     Hu0/0/0/3    10.1.33.2       0           
+       16002       SR Pfx (idx 2)     Hu0/0/0/0    10.1.11.2       0            (!)
+16003  Pop         SR Pfx (idx 3)     Hu0/0/0/0    10.1.11.2       0           
+       16003       SR Pfx (idx 3)     Hu0/0/0/3    10.1.33.2       0            (!)
+16004  Pop         SR Pfx (idx 4)     Hu0/0/0/1    10.1.21.2       0           
+       16004       SR Pfx (idx 4)     Hu0/0/0/3    10.1.33.2       0            (!)
 ```
 
 In addition to the adjacency-sids, we also see the prefix-sids that we configured for interface loopback 0 in OSPF. These prefix-sids are highlighted at the top of the output.  You will see back up paths here as well with outgoing labels to complete the backup LSP.
@@ -289,19 +302,19 @@ In addition to the adjacency-sids, we also see the prefix-sids that we configure
  
  ```bash
  RP/0/RP0/CPU0:sr-p001#show mpls label table
- Table Label   Owner                           State  Rewrite
- ----- ------- ------------------------------- ------ -------
- 0     0       LSD(A)                          InUse  Yes
- 0     1       LSD(A)                          InUse  Yes
- 0     2       LSD(A)                          InUse  Yes
- 0     13      LSD(A)                          InUse  Yes
- 0     16000   OSPF(A):ospf-1                  InUse  No
- 0     24000   OSPF(A):ospf-1                  InUse  Yes
- 0     24001   OSPF(A):ospf-1                  InUse  Yes
- 0     24002   OSPF(A):ospf-1                  InUse  Yes
- 0     24003   OSPF(A):ospf-1                  InUse  Yes
- 0     24004   OSPF(A):ospf-1                  InUse  Yes
- 0     24005   OSPF(A):ospf-1                  InUse  Yes
+Table Label   Owner                           State  Rewrite
+----- ------- ------------------------------- ------ -------
+0     0       LSD(A)                          InUse  Yes
+0     1       LSD(A)                          InUse  Yes
+0     2       LSD(A)                          InUse  Yes
+0     13      LSD(A)                          InUse  Yes
+0     16000   OSPF(A):ospf-1                  InUse  No
+0     24000   OSPF(A):ospf-1                  InUse  Yes
+0     24001   OSPF(A):ospf-1                  InUse  Yes
+0     24002   OSPF(A):ospf-1                  InUse  Yes
+0     24003   OSPF(A):ospf-1                  InUse  Yes
+0     24004   OSPF(A):ospf-1                  InUse  Yes
+0     24005   OSPF(A):ospf-1                  InUse  Yes
  What we are seeing here is the global SR label database starts at 16000, which is the default value.  Next, we see 24000, which is the start of the dynamic label database space.  Labels 24001-24005 are the dynamic labels that were automatically generated by the router’s segment routing process and the advertised via the IGP process, OSPF process 1.
  For even more detailed information of the Label Switch Database (LSD), check the output of ‘show mpls lsd forwarding details’.   
  ```
@@ -315,15 +328,16 @@ Let's investigate the OSPF SID databaset to ensure we can see our neighbors pref
  ```bash
  RP/0/RP0/CPU0:sr-p001#show ospf sid-database
  
- SID Database for ospf 1 with ID 1.1.1.1
- 
- SID          Prefix/Mask
- --------     ------------------
- 1            1.1.1.1/32               (L)
- 2            2.2.2.2/32
- 3            3.3.3.3/32
- 4            4.4.4.4/32 
+SID Database for ospf 1 with ID 1.1.1.1
+
+SID          Prefix/Mask
+--------     ------------------
+1            1.1.1.1/32               (L)
+2            2.2.2.2/32               
+3            3.3.3.3/32               
+4            4.4.4.4/32 
 ```
 
  As you can see from the output above, all SIDs we configured on all the routers are present in the OSPF sid-database. You should see similar output on all routers.
  
+[Prev Task](/../main/)                                            [Next Task](/../main/task2/task2.md) 

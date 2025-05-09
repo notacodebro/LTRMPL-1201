@@ -30,14 +30,31 @@ On sr-p001, we will use BGP’s route-reflector feature to avoid the iBGP requir
 (conf-bgp)#end
 
 ```
+We will have two Route-Reflectors in this AS.  We need to configure a Cluster-ID when we peer them with each other to guarantee proper route advertisements
+
+```bash
+(config-bgp)#neighbor-group RR-CLUSTER
+config-bgp-nbrgrp)#remote-as 65001
+(config-bgp-nbrgrp)#update-source lo0
+(config-bgp-nbrgrp)#address-family l2vpn evpn
+(config-bgp-nbrgrp-af)#cluster-id 1
+(config-bgp-nbrgrp)#exit
+(config-bgp)#neighbor 2.2.2.2 use neighbor-group RR-CLUSTER
+(config-bgp)#commit
+
+```
+2.  Configure BGP on sr-p002
+
+Execute the preceeding configuration changes but on sr-p002 with an update-source of Loopback0 of `2.2.2.2`. 
+
 >[!NOTE]
 > We have enabled the EVPN SAFI only, so IPv4 specific commands will return null values as expected. Keep this in mind! 
 
-Node sr-p001 is now configured as a route reflector for the l2vpn evpn address-family and will accept connections from nodes sr-pe001 and sr-pe002.
+Node sr-p001 and sr-p002 are now configured as a route reflector for the l2vpn evpn address-family and will accept connections from nodes sr-pe001 and sr-pe002.
 
-2. Validate BGP
+3. Validate BGP
 
-Let's validate that our configuration is working as expected and waiting for peers to begin negoitating an adjacency. 
+Let's validate that our configuration for sr-p001 and sr-p002 are successfully connected and nodes sr-p001 and sr-p002 are waiting for peers sr-pe001 and sr-pe002 to begin negotiating an adjacency. 
 
 ```bash
 RP/0/RP0/CPU0:sr-p001#show bgp l2vpn evpn summ
@@ -46,20 +63,22 @@ BGP generic scan interval 60 secs
 Non-stop routing is enabled
 BGP table state: Active
 Table ID: 0x0
+BGP table nexthop route policy: 
 BGP main routing table version 1
-BGP NSR Initial initsync version 18446744073709551615 (Not Reached)
+BGP NSR Initial initsync version 1 (Reached)
 BGP NSR/ISSU Sync-Group versions 0/0
 BGP scan interval 60 secs
 
 BGP is operating in STANDALONE mode.
 
 
-Process       RcvTblVer   bRIB/RIB   LabelVer  ImportVer  SendTblVer  StandbyVer
-Speaker               1          1          1          0           1           0
+Process    RcvTblVer     bRIB/RIB     LabelVer    ImportVer    SendTblVer   StandbyVer
+Speaker            1             1             1             1             1             0
 
-Neighbor        Spk    AS MsgRcvd MsgSent   TblVer  InQ OutQ  Up/Down  St/PfxRcd
-3.3.3.3           0 65001       0       0        0    0    0 00:00:00 Active
-4.4.4.4           0 65001       0       0        0    0    0 00:00:00 Active
+Neighbor        Spk    AS MsgRcvd MsgSent       TblVer  InQ OutQ  Up/Down  St/PfxRcd
+2.2.2.2           0 65001       7       7            1    0    0 00:04:58          0
+3.3.3.3           0 65001       0       0            0    0    0 00:00:00  Active
+4.4.4.4           0 65001       0       0            0    0    0 00:00:00  Active
 ```
 
 Each BGP session should be in the **Active** state. 
@@ -75,10 +94,14 @@ RP/0/RP0/CPU0:sr-pe001(config)#router bgp 65001
 RP/0/RP0/CPU0:sr-pe001(config-bgp)#bgp router-id 3.3.3.3
 RP/0/RP0/CPU0:sr-pe001(config-bgp)#address-family l2vpn evpn
 RP/0/RP0/CPU0:sr-pe001(config-bgp-af)#exit
-RP/0/RP0/CPU0:sr-pe001(config-bgp)#neighbor 1.1.1.1
-RP/0/RP0/CPU0:sr-pe001(config-bgp-nbr)#remote-as 65001
-RP/0/RP0/CPU0:sr-pe001(config-bgp-nbr)#update-source loopback0
-RP/0/RP0/CPU0:sr-pe001(config-bgp-nbr)#address-family l2vpn evpn
+RP/0/RP0/CPU0:sr-pe001(config-bgp)#neighbor-group RR
+RP/0/RP0/CPU0:sr-pe001(config-bgp-nbrgrp)#remote-as 65001
+RP/0/RP0/CPU0:sr-pe001(config-bgp-nbrgrp)#update-source loopback0
+RP/0/RP0/CPU0:sr-pe001(config-bgp-nbrgrp)#address-family l2vpn evpn
+RP/0/RP0/CPU0:sr-pe001(config-bgp-nbrgrp-af)#exit
+RP/0/RP0/CPU0:sr-pe001(config-bgp-nbrgrp)#exit
+RP/0/RP0/CPU0:sr-pe001(config-bgp)#neighbor 1.1.1.1 use neighbor-group RR
+RP/0/RP0/CPU0:sr-pe001(config-bgp)#neighbor 2.2.2.2 use neighbor-group RR
 RP/0/RP0/CPU0:sr-pe001(config-bgp-nbr-af)#commit
 RP/0/RP0/CPU0:sr-pe001(config-bgp-nbr-af)#end
 ```
@@ -89,10 +112,14 @@ RP/0/RP0/CPU0:sr-pe002(config)#router bgp 65001
 RP/0/RP0/CPU0:sr-pe002(config-bgp)#bgp router-id 4.4.4.4
 RP/0/RP0/CPU0:sr-pe002(config-bgp)#address-family l2vpn evpn
 RP/0/RP0/CPU0:sr-pe002(config-bgp-af)#exit
-RP/0/RP0/CPU0:sr-pe002(config-bgp)#neighbor 1.1.1.1
-RP/0/RP0/CPU0:sr-pe002(config-bgp-nbr)#remote-as 65001
-RP/0/RP0/CPU0:sr-pe002(config-bgp-nbr)#update-source loopback0
-RP/0/RP0/CPU0:sr-pe002(config-bgp-nbr)#address-family l2vpn evpn
+RP/0/RP0/CPU0:sr-pe002(config-bgp)#neighbor-group RR
+RP/0/RP0/CPU0:sr-pe002(config-bgp-nbrgrp)#remote-as 65001
+RP/0/RP0/CPU0:sr-pe002(config-bgp-nbrgrp)#update-source loopback0
+RP/0/RP0/CPU0:sr-pe002(config-bgp-nbrgrp)#address-family l2vpn evpn
+RP/0/RP0/CPU0:sr-pe002(config-bgp-nbrgrp-af)#exit
+RP/0/RP0/CPU0:sr-pe002(config-bgp-nbrgrp)#exit
+RP/0/RP0/CPU0:sr-pe002(config-bgp)#neighbor 1.1.1.1 use neighbor-group RR
+RP/0/RP0/CPU0:sr-pe002(config-bgp)#neighbor 2.2.2.2 use neighbor-group RR
 RP/0/RP0/CPU0:sr-pe002(config-bgp-nbr-af)#commit
 RP/0/RP0/CPU0:sr-pe002(config-bgp-nbr-af)#end
 ```
@@ -110,9 +137,10 @@ RP/0/RP0/CPU0:sr-p001#sh bgp l2vpn evpn summary
 Process       RcvTblVer   bRIB/RIB   LabelVer  ImportVer  SendTblVer  StandbyVer
 Speaker               1          1          1          1           1           0
 
-Neighbor        Spk    AS MsgRcvd MsgSent   TblVer  InQ OutQ  Up/Down  St/PfxRcd
-3.3.3.3           0 65001      11      11        1    0    0 00:08:18          0
-4.4.4.4           0 65001       2       3        1    0    0 00:00:10          0
+Neighbor        Spk    AS MsgRcvd MsgSent       TblVer  InQ OutQ  Up/Down  St/PfxRcd
+2.2.2.2           0 65001      14      14            1    0    0 00:11:19          0
+3.3.3.3           0 65001       2       3            1    0    0 00:00:20          0
+4.4.4.4           0 65001       2       3            1    0    0 00:00:20          0
 ```
 
 On sr-p002:
@@ -123,10 +151,24 @@ RP/0/RP0/CPU0:sr-pe001#sh bgp l2vpn evpn summ
 Process       RcvTblVer   bRIB/RIB   LabelVer  ImportVer  SendTblVer  StandbyVer
 Speaker               1          1          1          1           1           0
 
-Neighbor        Spk    AS MsgRcvd MsgSent   TblVer  InQ OutQ  Up/Down  St/PfxRcd
-1.1.1.1           0 65001       6       5        1    0    0 00:03:52          0
+Neighbor        Spk    AS MsgRcvd MsgSent       TblVer  InQ OutQ  Up/Down  St/PfxRcd
+1.1.1.1           0 65001      14      14            1    0    0 00:11:19          0
+3.3.3.3           0 65001       2       3            1    0    0 00:00:20          0
+4.4.4.4           0 65001       2       3            1    0    0 00:00:22          0
 ```
 
+On sr-pe001:
+```bash
+RP/0/RP0/CPU0:sr-pe001#sh bgp l2vpn evpn summ
+<snip>
+
+Process       RcvTblVer   bRIB/RIB   LabelVer  ImportVer  SendTblVer  StandbyVer
+Speaker               1          1          1          1           1           0
+
+Neighbor        Spk    AS MsgRcvd MsgSent       TblVer  InQ OutQ  Up/Down  St/PfxRcd
+1.1.1.1           0 65001       3       2            1    0    0 00:00:20          0
+2.2.2.2           0 65001       3       2            1    0    0 00:00:22          0
+```
 On sr-pe002:
 ```bash
 RP/0/RP0/CPU0:sr-pe002#sh bgp l2vpn evpn summ
@@ -135,20 +177,17 @@ RP/0/RP0/CPU0:sr-pe002#sh bgp l2vpn evpn summ
 Process       RcvTblVer   bRIB/RIB   LabelVer  ImportVer  SendTblVer  StandbyVer
 Speaker               1          1          1          1           1           0
 
-Neighbor        Spk    AS MsgRcvd MsgSent   TblVer  InQ OutQ  Up/Down  St/PfxRcd
-1.1.1.1           0 65001       6       5        1    0    0 00:03:59          0
+Neighbor        Spk    AS MsgRcvd MsgSent       TblVer  InQ OutQ  Up/Down  St/PfxRcd
+1.1.1.1           0 65001       3       2            1    0    0 00:00:20          0
+2.2.2.2           0 65001       3       2            1    0    0 00:00:22          0
 ```
-
-
-## Step 4 - Replicate configuration on sr-p002
-
-This is an optional step but will allow you to observe services ECMP through BGP. Execute steps 1 - 3 but on sr-p001 and modify the existing configuration on sr-pe001 and sr-pe002 to include a peering for sr-p002's loopback of `2.2.2.2`. 
 
  When this configuration is complete you should have the the following peering relationships in place: 
 
- Peer1      |  Peer2     
-----------  | :------------ 
-sr-p001     | sr-pe001 
-Sr-p001     | sr-pe002 
-Sr-p002     | sr-pe001 
-Sr-p002     | sr-pe002   
+ SR-P001      |  SR-P002     
+----------  | ------------ 
+sr-pe001    | sr-pe001
+sr-pe002    | sr-pe002
+sr-p002     | sr-p001
+
+[Prev Task](/../main/task1/task1.md)                                          [Next Task](/../main/task3/task3.md) 

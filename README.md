@@ -1,6 +1,6 @@
-# Cisco Live 2024 - SR-MPLS 101 - LTRMPL-1201
+# Cisco Live 2025 - SR-MPLS 101 - LTRMPL-1201
 
-<img src="images/clus.png" width="900">
+<img src="images/clus2025.png" width="900">
 
 # Introduction 
 
@@ -17,12 +17,13 @@ In this lab you will learn how to configure a four-node transport network with a
 The lab is built with structured tasks so that you may build the completed segment routed network. 
 
 [Task 1 - OSPF Underlay ](task1/task1.md)   
+[Task 1a - ISIS Underlay ](task1a/task1a.md) *optional underlay*   
 [Task 2 - MP-BGP  ](task2/task2.md)   
 [Task 3 - EVPN Services ](task3/task3.md)   
 [Task 4 - Service VPN - OSPF routing ](task4/task4.md)  
-
+[Task 5 - SR Traffic Engineering ](task5/task5.md) 
 > [!NOTE]
-> BONUS! [Task 5 - SR Traffic Engineering ](task5/task5.md)   
+> BONUS! [Task 6 - TBD ](task6/task6.md)   
 
  
 # The Topology 
@@ -49,7 +50,7 @@ sr-rtr001   | 198.18.128.60         | admin     |   cisco       | IOSv
 sr-rtr002   | 198.18.128.61         | admin     |   cisco       | IOSv
 server001   | 198.18.128.70         | admin     |   cisco       | Linux
 server002   | 198.18.128.71         | admin     |   cisco       | Linux
-cml001      | https://198.18.128.100| admin     |   cisco123!   | CML node
+cml001      | https://198.18.128.100| admin     |   C1sco12345  | CML node
 webrdp      | 198.18.133.11         | root      |   C1sco12345  | xr9kv
 
 
@@ -74,3 +75,6 @@ If you chose to connect to the lab with  RDP/WebRDP you will be using a virtual 
 
 # Get Going! 
 Now that you have a handle on the lab details and connectivity requirements its time to start working on your [Tasks](#Task-Summary)
+
+
+[Next Task](task1/task1.md) 

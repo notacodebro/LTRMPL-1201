@@ -34,7 +34,7 @@ Run this script on sr-pe001:
 conf
 segment-routing
 traffic-eng
-policy my_first_SR-TE-policy
+policy my_first_SR-TE_policy
 color 5001 end-point ipv4 4.4.4.4
 candidate-paths
 preference 100
@@ -58,19 +58,19 @@ SR-TE policy database
 Color: 5001, End-point: 4.4.4.4
   Name: srte_c_5001_ep_4.4.4.4
   Status:
-    Admin: up  Operational: up for 03:41:57 (since May  2 14:56:40.736)
+    Admin: up  Operational: up for 00:00:08 (since Apr 18 19:24:25.162)
   Candidate-paths:
     Preference: 100 (configuration) (active)
       Name: my_first_SR-TE_policy
       Requested BSID: dynamic
       Constraints:
         Protection Type: protected-preferred
-        Maximum SID Depth: 10
+        Maximum SID Depth: 8 
       Explicit: segment-list 1to2extrahop (valid)
         Weight: 1, Metric Type: TE
-          16001
-          16002
-          16004
+          SID[0]: 16001
+          SID[1]: 16002
+          SID[2]: 16004
   Attributes:
     Binding SID: 24007
     Forward Class: Not Configured
@@ -79,6 +79,7 @@ Color: 5001, End-point: 4.4.4.4
     IPv6 caps enable: yes
     Invalidation drop enabled: no
     Max Install Standby Candidate Paths: 0
+    Path Type: SRMPLSv4
 ```
 The friendly name is listed under the Candidate-paths section of the output.  What we need for this Step is here:
 
@@ -129,19 +130,19 @@ SR-TE policy database
 Color: 5001, End-point: 4.4.4.4
   Name: srte_c_5001_ep_4.4.4.4
   Status:
-    Admin: up  Operational: up for 03:52:28 (since May  2 14:56:40.736)
+    Admin: up  Operational: up for 00:10:33 (since Apr 18 19:24:25.162)
   Candidate-paths:
     Preference: 100 (configuration) (active)
-      Name: srte-c-5001-ep-4.4.4.4
+      Name: my_first_SR-TE_policy
       Requested BSID: dynamic
       Constraints:
         Protection Type: protected-preferred
-        Maximum SID Depth: 10
+        Maximum SID Depth: 8 
       Explicit: segment-list 1to2extrahop (valid)
         Weight: 1, Metric Type: TE
-          16001
-          16002
-          16004
+          SID[0]: 16001
+          SID[1]: 16002
+          SID[2]: 16004
   Attributes:
     Binding SID: 24007
     Forward Class: Not Configured
@@ -150,13 +151,14 @@ Color: 5001, End-point: 4.4.4.4
     IPv6 caps enable: yes
     Invalidation drop enabled: no
     Max Install Standby Candidate Paths: 0
+    Path Type: SRMPLSv4
 ```
 As we can see with this line,
-> Admin: up  Operational: up for 03:52:28 (since May  2 14:56:40.736)
+> Admin: up  Operational: up for 00:10:33 (since Apr 18 19:24:25.162)
 
 the path is up and operational.
 
-Return to the Edge web browser and open the lab in CML.  Righ click on the link G0/0 between sr-pe001 and sr-p001.  select Packet Capture.  In the new tab that opens in the bottom pane, click 'Start'.
+Return to the Edge web browser and open the lab in CML.  Righ click on the link Hu0/0/0/0 between sr-pe001 and sr-p001.  select Packet Capture.  In the new tab that opens in the bottom pane, click 'Start'.
 
 You will see MPLS Switched Packets populate the capture pane.  Some of these packets may be return packets from sr-pe002.  Click on one of the packets and review the label stack.  You should see labels in the header with 16002 followed by 16004.  recall that node sr-pe001 will strip the first label, 16001, from the label stack before it forwards the packet to sr-p001 because label 16001 is the next hop from sr-pe001.
 
@@ -167,3 +169,5 @@ If you find a packet with a single label value in the label stack with a dynamic
 ![img](../images/task5_img1.png)
 
 That's it!  Congratulations.  You've successfully built an Underlay, Overlay, two EVPN services, and an SR-TE policy.  There's much more to learn, but we hope we have created a good understanding for you, and that you have a good starting point with this lab.
+
+[Prev Task](../task4/task4.md) | [Home](../README.md) 

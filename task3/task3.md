@@ -13,10 +13,10 @@ To complete this Task, we need to create an AC for each device and an EVPN betwe
 CPE <--> PE information:
 
 ```angular2html
-server001 eth0 <--> sr-pe001 Gi0/0/0/4
-server002 eth0 <--> sr-pe002 Gi0/0/0/4
-sr-rtr001 Gi0/2 <--> sr-pe001 Gi0/0/0/2
-sr-rtr002 Gi0/2 <--> sr-pe002 Gi0/0/0/2
+server001 eth0 <--> sr-pe001 Hu0/0/0/4
+server002 eth0 <--> sr-pe002 Hu0/0/0/4
+sr-rtr001 Gi0/2 <--> sr-pe001 Hu0/0/0/2
+sr-rtr002 Gi0/2 <--> sr-pe002 Hu0/0/0/2
 ```
 
 Linux server circuit information:
@@ -31,15 +31,15 @@ Vlan: untagged
 IOS-XR must have its interfaces configured as ‘l2transport’ before it will recognize strictly L2 traffic on a subinterface. After a subinterface is designated as an L2
 interface, it will understand that it must match the dot1q tag specified in its configuration in order to know which subinterface to pin traffic to. That subinterface is later assigned to a L2VPN service, thus stitching a tagged or untagged subinterface to a L2 service.
 
-On nodes sr-pe001 and sr-pe002, configure gi0/0/0/4.1 as an L2 subinterface, accepting untagged traffic, and no-shut the interface and its parent interface, gi0/0/0/4.
+On nodes sr-pe001 and sr-pe002, configure Hu0/0/0/4.1 as an L2 subinterface, accepting untagged traffic, and no-shut the interface and its parent interface, Hu0/0/0/4.
 
 ```bash
 conf
-int gi0/0/0/4
+int hu0/0/0/4
 no shut
 exit
-int gi0/0/0/4.1 l2transport
-encapuslation untagged
+int hu0/0/0/4.1 l2transport
+encapsulation untagged
 no shut
 commit
 ```
@@ -53,7 +53,7 @@ On both PE nodes sr-pe001 and sr-pe002:
 l2vpn
 xconnect group servers
 p2p UNTAGGED
-int gi0/0/0/4.1
+int hu0/0/0/4.1
 ```
 
 Perform the following on sr-pe001:
@@ -83,10 +83,11 @@ You should have output similar to below, verifying eth0's network facing the PE:
 
 ```angular2html
 2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP qlen 1000
-link/ether 52:54:00:1e:ec:94 brd ff:ff:ff:ff:ff:ff inet 10.10.1.1/24 scope global eth0
-valid_lft forever preferred_lft forever
-inet6 fe80::5054:ff:fe1e:ec94/64 scope link
-valid_lft forever preferred_lft forever
+    link/ether 52:54:00:1c:e3:53 brd ff:ff:ff:ff:ff:ff
+    inet 10.10.1.1/24 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::5054:ff:fe1c:e353/64 scope link 
+       valid_lft forever preferred_lft forever
 ```
 Ping the server002's eth0 interface:
 
@@ -100,10 +101,11 @@ ip address show dev eth0
 ```
 ```angular2html
 2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP qlen 1000
-link/ether 52:54:00:14:7e:9d brd ff:ff:ff:ff:ff:ff inet 10.10.1.2/24 scope global eth0
-valid_lft forever preferred_lft forever
-inet6 fe80::5054:ff:fe14:7e9d/64 scope link
-valid_lft forever preferred_lft forever
+    link/ether 52:54:00:d2:5b:72 brd ff:ff:ff:ff:ff:ff
+    inet 10.10.1.2/24 scope global eth0
+       valid_lft forever preferred_lft forever
+    inet6 fe80::5054:ff:fed2:5b72/64 scope link 
+       valid_lft forever preferred_lft forever
 
 server002:~$ ping 10.10.1.1
 PING 10.10.1.1 (10.10.1.1): 56 data bytes
@@ -115,19 +117,25 @@ PING 10.10.1.1 (10.10.1.1): 56 data bytes
 BGP advertises the PE endpoints of each circuit and also the service label associated with the circuit on each PE. The service label is dynamic and may differ from what you see in the output below.
 On sr-pe001:
 ```bash
-#show bgp l2vpn evpn
+show bgp l2vpn evpn
 ```
 ```angular2html
 <snip>
 Status codes: s suppressed, d damped, h history, * valid, > best
 i - internal, r RIB-failure, S stale, N Nexthop-discard
 Origin codes: i - IGP, e - EGP, ? - incomplete
-Network                                     Next Hop Metric LocPrf Weight Path
-Route Distinguisher: 3.3.3.3:1001 (default for vrf VPWS:1001) 
-*> [1][0000.0000.0000.0000.0000][11001]/120 0.0.0.0                 0       i 
-*>i[1][0000.0000.0000.0000.0000][21001]/120 4.4.4.4         100     0       i
+   Network            Next Hop            Metric LocPrf Weight Path
+Route Distinguisher: 3.3.3.3:1001 (default for vrf VPWS:1001)
+Route Distinguisher Version: 6
+*> [1][0000.0000.0000.0000.0000][11001]/120
+                      0.0.0.0                                0 i
+*>i[1][0000.0000.0000.0000.0000][21001]/120
+                      4.4.4.4                       100      0 i
 Route Distinguisher: 4.4.4.4:1001
-*>i[1][0000.0000.0000.0000.0000][21001]/120 4.4.4.4         100     0       i
+Route Distinguisher Version: 5
+*>i[1][0000.0000.0000.0000.0000][21001]/120
+                      4.4.4.4                       100      0 i
+* i                   4.4.4.4                       100      0 i
 ```
 
 Let's dissect this:
@@ -143,7 +151,7 @@ These are the 'routes' for this VPN.  Broken down, we see
 * [1]: BGP EVPN route type 1.  Route Type 1 is always used for VPWS circuits
 * [0000.0000.0000.0000.0000]: Ethernet Segment Identifier for the PE's AC. VPWS is a singular point to point, so there is only one AC per PE.  Hence, all zeros's.
 * [11001] and [21001]: source and target AC identifiers for each PE
-* /120: the bit mask of the route
+* /120: Administrative Distance for this route.  Default AD for iBGP routes is 120.
 
 The next hop for each 'route' is listed as 0.0.0.0 (local router) and 4.4.4.4 (remote PE node).  The router is smart enough to not route packets that have been sourced on the local AC back to itself, so it will forward all ingress packets to the next hop, 4.4.4.4.
 
@@ -161,13 +169,20 @@ Your output should be similar to this:
 Status codes: s suppressed, d damped, h history, * valid, > best
 i - internal, r RIB-failure, S stale, N Nexthop-discard
 Origin codes: i - IGP, e - EGP, ? - incomplete
-Network                                     Next Hop Rcvd Label Local Label
+   Network            Next Hop        Rcvd Label      Local Label
 Route Distinguisher: 3.3.3.3:1001 (default for vrf VPWS:1001)
-*> [1][0000.0000.0000.0000.0000][11001]/120  0.0.0.0     nolabel     nolabel
-*>i[1][0000.0000.0000.0000.0000][21001]/120  4.4.4.4     24004       nolabel
+Route Distinguisher Version: 6
+*> [1][0000.0000.0000.0000.0000][11001]/120
+                      0.0.0.0         nolabel         nolabel
+*>i[1][0000.0000.0000.0000.0000][21001]/120
+                      4.4.4.4         24004           nolabel
 Route Distinguisher: 4.4.4.4:1001
-*>i[1][0000.0000.0000.0000.0000][21001]/120  4.4.4.4     24004       nolabel
-Processed 3 prefixes, 3 paths
+Route Distinguisher Version: 5
+*>i[1][0000.0000.0000.0000.0000][21001]/120
+                      4.4.4.4         24004           nolabel
+* i                   4.4.4.4         24004           nolabel
+
+Processed 3 prefixes, 4 paths
 ```
 RD 3.3.3.3:1001 has two routes, one with destination of the local router (its outbound advertisement to neighbors) and one with destination remote PE router 4.4.4.4.  The local router doesnt have a label from the local router's perspective.  This is why there is no label for the local route.  However, we see the service label of 24004 advertised from remote node 4.4.4.4.  Any SR-MPLS packets forwarded from the local router to node 4.4.4.4 for this service will have label 24004 pushed onto the bottom of its label stack.
 
@@ -181,12 +196,13 @@ show ospf sid-database
 You should output similar to this:
 ```angular2html
 SID Database for ospf 1 with ID 3.3.3.3
-SID Prefix/Mask
--------- ------------------
-1   1.1.1.1/32
-2   2.2.2.2/32
-3   3.3.3.3/32 (L)
-4   4.4.4.4/32
+
+SID          Prefix/Mask
+--------     ------------------
+1            1.1.1.1/32               
+2            2.2.2.2/32               
+3            3.3.3.3/32               (L)
+4            4.4.4.4/32 
 ```
 Because we know our global sid database range starts at 16000, we can deduce that the prefix-sid for prefix 4.4.4.4/32 is 16004.  Index 3 is the label for the local router's prefix, 3.3.3.3/32, as denoted by the '(L)'.
 
@@ -197,31 +213,32 @@ show mpls forwarding
 ```
 This gives us output similar to this:
 ```angular2html
-Local Outgoing Prefix Outgoing Next Hop Bytes
-Label Label or ID Interface Switched
+Local  Outgoing    Prefix             Outgoing     Next Hop        Bytes       
+Label  Label       or ID              Interface                    Switched    
 ------ ----------- ------------------ ------------ --------------- ------------
-16001 Pop       SR Pfx (idx 1) Gi0/0/0/0 10.1.11.1 100076
-      16001     SR Pfx (idx 1) Gi0/0/0/1 10.1.21.1 0 (!)
-16002 Pop       SR Pfx (idx 2) Gi0/0/0/1 10.1.21.1 0
-      16002     SR Pfx (idx 2) Gi0/0/0/0 10.1.11.1 0 (!) 
-16004 16004     SR Pfx (idx 4) Gi0/0/0/0 10.1.11.1 0
-      16004     SR Pfx (idx 4) Gi0/0/0/1 10.1.21.1 37826
-24000 Pop       SR Adj (idx 0) Gi0/0/0/0 10.1.11.1 0
-24001 Pop       SR Adj (idx 0) Gi0/0/0/0 10.1.11.1 0
-      16001     SR Adj (idx 0) Gi0/0/0/1 10.1.21.1 0 (!)
-24002 Pop       SR Adj (idx 0) Gi0/0/0/1 10.1.21.1 0
-24003 Pop       SR Adj (idx 0) Gi0/0/0/1 10.1.21.1 0
-      16002     SR Adj (idx 0) Gi0/0/0/0 10.1.11.1 0 (!) 
-24004 Pop       PW(EVI=1001 AC-ID=21001) Gi0/0/0/4.1 point2point 36344
+16001  Pop         SR Pfx (idx 1)     Hu0/0/0/0    10.1.11.1       0           
+       16001       SR Pfx (idx 1)     Hu0/0/0/1    10.1.21.1       0            (!)
+16002  Pop         SR Pfx (idx 2)     Hu0/0/0/1    10.1.21.1       0           
+       16002       SR Pfx (idx 2)     Hu0/0/0/0    10.1.11.1       0            (!)
+16004  16004       SR Pfx (idx 4)     Hu0/0/0/0    10.1.11.1       0           
+       16004       SR Pfx (idx 4)     Hu0/0/0/1    10.1.21.1       1184        
+24000  Pop         SR Adj (idx 0)     Hu0/0/0/1    10.1.21.1       0           
+24001  Pop         SR Adj (idx 0)     Hu0/0/0/1    10.1.21.1       0           
+       16002       SR Adj (idx 0)     Hu0/0/0/0    10.1.11.1       0            (!)
+24002  Pop         SR Adj (idx 0)     Hu0/0/0/0    10.1.11.1       0           
+24003  Pop         SR Adj (idx 0)     Hu0/0/0/0    10.1.11.1       0           
+       16001       SR Adj (idx 0)     Hu0/0/0/1    10.1.21.1       0            (!)
+24004  Pop         PW(EVI=1001 AC-ID=21001)   \
+                                      Hu0/0/0/4.1  point2point     0  
 ```
 Let's focus on two sections of this output.
 ```angular2html
-16004 16004     SR Pfx (idx 4) Gi0/0/0/0 10.1.11.1 0
-      16004     SR Pfx (idx 4) Gi0/0/0/1 10.1.21.1 37826
+16004 16004     SR Pfx (idx 4) Hu0/0/0/0 10.1.11.1 0
+      16004     SR Pfx (idx 4) Hu0/0/0/1 10.1.21.1 1184
 ```
-This is showing us that we have two outgoing interfaces for label 16004, or index 4.  Our egress interfaces are Gi0/0/0/0 and Gi0/0/0/1.  This is due to ECMP and having two equal cost routes from the IGP.  We can also see that we are using Gi0/0/0/1 because Gi0/0/0/0 has zero bytes switched.
+This is showing us that we have two outgoing interfaces for label 16004, or index 4.  Our egress interfaces are Hu0/0/0/0 and Hu0/0/0/1.  This is due to ECMP and having two equal cost routes from the IGP.  We can also see that we are using Hu0/0/0/1 because Hu0/0/0/0 has zero bytes switched.
 ```angular2html
-24004 Pop       PW(EVI=1001 AC-ID=21001) Gi0/0/0/4.1 point2point 36344
+24004 Pop       PW(EVI=1001 AC-ID=21001) Hu0/0/0/4.1 point2point 0
 ```
 This is the label for the EVPN service we created.  This is our local label and it just happens to be the same as the remote label on node sr-pe002 that we learned from BGP.  This line shows us the EVI, and the remote node's AC-ID and egress interface.
 
@@ -241,7 +258,7 @@ Open the Edge Browser on the remote workstation and log in to CML. Click on the 
 
 <img src="../images/task3_img0.png" width="1200">
 
-Next, right click on the link that corresponds to the interface on sr-pe001's outgoing interface found in Step 4.  We previously identified Gi0/0/0/1 as the outgoing interface in this guide, but yours may differ.  Gi0/0/0/1 of sr-pe001 corresponds to G0/1 in the CML map, so we right-click on G0/1.  In the context menu that pops up, clck 'Packet Capture'.
+Next, right click on the link that corresponds to the interface on sr-pe001's outgoing interface found in Step 4.  We previously identified Hu0/0/0/1 as the outgoing interface in this guide, but yours may differ.  Hu0/0/0/1 of sr-pe001 corresponds to Hu0/0/0/1 in the CML map, so we right-click on Hu0/0/0/1.  In the context menu that pops up, clck 'Packet Capture'.
 
 <img src="../images/task3_img1.png" width="1200">
 
@@ -255,7 +272,7 @@ Find an MPLS Label Switched Packet and click on it.
 
 In the new frame that populates at the bottom, we can see the contents of that MPLS packet.  Take note of the label stack.  The label stack for this outgoing packet is [16004][24004].  Recall that routers will read the top label of the stack only.  The next hop router, sr-p002 in this case, will get a packet with [16004] at the top of its stack.  sr-p002 will then perform a lookup in its IGP for sr-label 16004.  We established that OSPF's sid-database know that label 16004 corresponds to prefix route 4.4.4.4/32, which is sr-pe002's loopback address.
 
-Now right click on the next hop router's interface that faces sr-pe002.  If the next hop router in your lab is sr-p001, you will be selecting G0/1 of sr-p001.  If your next hop is sr-p002 then you will selecting interface G0/2 of sr-p002.  Repeat the packet capture procedure for this interface.
+Now right click on the next hop router's interface that faces sr-pe002.  If the next hop router in your lab is sr-p001, you will be selecting Hu0/0/0/1 of sr-p001.  If your next hop is sr-p002 then you will selecting interface Hu0/0/0/2 of sr-p002.  Repeat the packet capture procedure for this interface.
 
 <img src="../images/task3_img4.png" width="1200">
 
@@ -263,3 +280,5 @@ Node sr-p002 is the penultimate hop for sr-pe002.  Accordingly, sr-p002 has remo
 
 Return to server001 and stop the ping.
 
+
+[Prev Task](..task2/task2.md) | [Next Task](../task4/task4.md) 

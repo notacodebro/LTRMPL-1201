@@ -11,15 +11,17 @@ Recall that another term for Segment Routing is 'Source Routing'.  This is becau
 
 Run the following script on sr-pe001:
 ```bash
-config
-segment-routing
-traffic-eng
-segment-list 1to2extrahop
-index 10 mpls label 16001
-index 20 mpls label 16002
-index 30 mpls label 16004
-commit
-end
+RP/0/RP0/CPU0:sr-pe001#conf t
+RP/0/RP0/CPU0:sr-pe001(config)#segment-routing
+RP/0/RP0/CPU0:sr-pe001(config-sr)#traffic-eng
+RP/0/RP0/CPU0:sr-pe001(config-sr-te)#segment-list 1to2extrahop
+RP/0/RP0/CPU0:sr-pe001(config-sr-te-sl)#index 10 mpls label 16001
+RP/0/RP0/CPU0:sr-pe001(config-sr-te-sl)#index 20 mpls label 16002
+RP/0/RP0/CPU0:sr-pe001(config-sr-te-sl)#index 30 mpls label 16004
+RP/0/RP0/CPU0:sr-pe001(config-sr-te-sl)#commit
+RP/0/RP0/CPU0:sr-pe001(config-sr-te-sl)#end
+RP/0/RP0/CPU0:sr-pe001#
+
 ```
 
 ## Step 2: Configure SR-TE policy
@@ -31,16 +33,17 @@ Every policy consists of at least one candidate path.  The router will calculate
 
 Run this script on sr-pe001:
 ```bash
-conf
-segment-routing
-traffic-eng
-policy my_first_SR-TE_policy
-color 5001 end-point ipv4 4.4.4.4
-candidate-paths
-preference 100
-explicit segment-list 1to2extrahop
-commit
-end
+RP/0/RP0/CPU0:sr-pe001#conf
+RP/0/RP0/CPU0:sr-pe001(config)#segment-routing
+RP/0/RP0/CPU0:sr-pe001(config-sr)#traffic-eng
+RP/0/RP0/CPU0:sr-pe001(config-sr-te)#policy my_first_SR-TE_policy
+RP/0/RP0/CPU0:sr-pe001(config-sr-te-policy)#color 5001 end-point ipv4 4.4.4.4
+RP/0/RP0/CPU0:sr-pe001(config-sr-te-policy)#candidate-paths
+RP/0/RP0/CPU0:sr-pe001(config-sr-te-policy-path)#preference 100
+RP/0/RP0/CPU0:sr-pe001(config-sr-te-policy-path-pref)#explicit segment-list 1to2extrahop
+RP/0/RP0/CPU0:sr-pe001(config-sr-te-pp-info)#commit
+RP/0/RP0/CPU0:sr-pe001(config-sr-te-pp-info)#end
+RP/0/RP0/CPU0:sr-pe001#
 ```
 
 ## Step 3: Steer service traffic into the policy
@@ -97,24 +100,27 @@ We need to use the tuple identification name the router created to steer the ser
 
 Run the following script on sr-pe001:
 ```bash
-conf
-l2vpn
- pw-class servers-te
-  encapsulation mpls
-   preferred-path sr-te policy srte_c_5001_ep_4.4.4.4
-commit
-end
+RP/0/RP0/CPU0:sr-pe001#conf t
+RP/0/RP0/CPU0:sr-pe001(config)#l2vpn
+RP/0/RP0/CPU0:sr-pe001(config-l2vpn)# pw-class servers-te
+RP/0/RP0/CPU0:sr-pe001(config-l2vpn-pwc)#  encapsulation mpls
+RP/0/RP0/CPU0:sr-pe001(config-l2vpn-pwc-mpls)#   preferred-path sr-te policy srte_c_5001_ep_4.4.4.4
+RP/0/RP0/CPU0:sr-pe001(config-l2vpn-pwc-mpls)#commit
+RP/0/RP0/CPU0:sr-pe001(config-l2vpn-pwc-mpls)#end
+RP/0/RP0/CPU0:sr-pe001#
+
 ```
 Now that the psuedowire-class has been created, we can assign it to EVI 1001 to change the path of the servers' service:
 ```bash
-conf
-l2vpn
-xconnect group servers
-p2p UNTAGGED
-neighbor evpn evi 1001 target 21001 source 11001
-pw-class servers-te
-commit
-end
+RP/0/RP0/CPU0:sr-pe001#conf t
+RP/0/RP0/CPU0:sr-pe001(config)#l2vpn
+RP/0/RP0/CPU0:sr-pe001(config-l2vpn)#xconnect group servers
+RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc)#p2p UNTAGGED
+RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc-p2p)#neighbor evpn evi 1001 target 21001 source 11001
+RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc-p2p-pw)#pw-class servers-te
+RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc-p2p-pw)#commit
+RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc-p2p-pw)#end
+RP/0/RP0/CPU0:sr-pe001#
 ```
 ## Step 3: Verify the policy is working
 Log in to server001 and ping server002, 10.10.1.2.  If the ping is working, let it continue to run.

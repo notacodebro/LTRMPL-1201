@@ -1,6 +1,6 @@
 # Segment Routing Traffic Engineering 
 
-Welcome to our Bonus Task, SR-TE!  If you have made it this far, then you have been excellent, task-driven students and wasted no time in getting to this section.  We will be configuring an explicit SID list to force packets to traverse  the link between sr-p001 and sr-p002, interface Gi0/0/0/3 on both nodes.  Normally, this link is not used because it would create an extra hop, and SR will always default to following the IGP path toward its destination.  The policy will override the IGP path.  Our policy will only affect traffic in one direction.
+Welcome to our Bonus Task, SR-TE!  If you have made it this far, then you have been excellent, task-driven students and wasted no time in getting to this section.  We will be configuring an explicit SID list to force packets to traverse  the link between sr-p001 and sr-p002, interface Hun0/0/0/3 on both nodes.  Normally, this link is not used because it would create an extra hop, and SR will always default to following the IGP path toward its destination.  The policy will override the IGP path.  Our policy will only affect traffic in one direction.
 
 Creating this policy requires three steps:
 1) Create the explicit SID list

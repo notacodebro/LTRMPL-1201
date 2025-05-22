@@ -12,35 +12,33 @@ dot1q tag:  untagged
 ```
 On sr-pe001:
 ```bash
-config
-int hu0/0/0/2
-no shut
-int hu0/0/0/2.1 l2transport
-encapsulation untagged
-no shut
-l2vpn
-xconnect group routers
-p2p UNTAGGED
-interface hu0/0/0/2.1
-neighbor evpn evi 1002 target 21002 source 11002
-commit
-end
+RP/0/RP0/CPU0:sr-pe001(config)#int hu0/0/0/2
+RP/0/RP0/CPU0:sr-pe001(config-if)#no shut
+RP/0/RP0/CPU0:sr-pe001(config-if)#int hu0/0/0/2.1 l2transport
+RP/0/RP0/CPU0:sr-pe001(config-subif)#encapsulation untagged
+RP/0/RP0/CPU0:sr-pe001(config-subif)#no shut
+RP/0/RP0/CPU0:sr-pe001(config-subif)#l2vpn
+RP/0/RP0/CPU0:sr-pe001(config-l2vpn)#xconnect group routers
+RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc)#p2p UNTAGGED
+RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc-p2p)#interface hu0/0/0/2.1
+RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc-p2p)#neighbor evpn evi 1002 target 2100$
+RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc-p2p-pw)#commit
+RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc-p2p-pw)#end
 ```
 On sr-pe002:
 ```bash
-config
-int hu0/0/0/2
-no shut
-int hu0/0/0/2.1 l2transport
-encapsulation untagged
-no shut
-l2vpn
-xconnect group routers
-p2p UNTAGGED
-interface hu0/0/0/2.1
-neighbor evpn evi 1002 target 11002 source 21002
-commit
-end
+RP/0/RP0/CPU0:sr-p002(config)#int hu0/0/0/2
+RP/0/RP0/CPU0:sr-p002(config-if)#no shut
+RP/0/RP0/CPU0:sr-p002(config-if)#int hu0/0/0/2.1 l2transport
+RP/0/RP0/CPU0:sr-p002(config-subif)#encapsulation untagged
+RP/0/RP0/CPU0:sr-p002(config-subif)#no shut
+RP/0/RP0/CPU0:sr-p002(config-subif)#l2vpn
+RP/0/RP0/CPU0:sr-p002(config-l2vpn)#xconnect group routers
+RP/0/RP0/CPU0:sr-p002(config-l2vpn-xc)#p2p UNTAGGED
+RP/0/RP0/CPU0:sr-p002(config-l2vpn-xc-p2p)#interface hu0/0/0/2.1
+RP/0/RP0/CPU0:sr-p002(config-l2vpn-xc-p2p)#neighbor evpn evi 1002 target 11002$
+RP/0/RP0/CPU0:sr-p002(config-l2vpn-xc-p2p-pw)#commit
+RP/0/RP0/CPU0:sr-p002(config-l2vpn-xc-p2p-pw)#end
 ```
 
 ## Step 2: Configure IOS-XE switches
@@ -78,22 +76,22 @@ In IOS-XE, we can create OSPF interfaces based on the network membership.  On sr
 
 Run the following script on sr-rtr001:
 ```bash
-config t
-router ospf 1
-network 10.10.2.0 0.0.0.255 area 0
-network 33.33.33.33 0.0.0.0 area 1
-end
-wr
+sr-rtr001#conf t
+sr-rtr001(config)#router ospf 1
+sr-rtr001(config-router)#network 10.10.2.0 0.0.0.255 area 0
+sr-rtr001(config-router)#network 33.33.33.33 0.0.0.0 area 1
+sr-rtr001(config-router)#end
+sr-rtr001#wr
 ```
 
 Run this script on sr-rtr002:
 ```bash
-config t
-router ospf 1
-network 10.10.2.0 0.0.0.255 area 0
-network 44.44.44.44 0.0.0.0 area 2
-end
-wr
+sr-rtr002#config t
+sr-rtr002(config)#router ospf 1
+sr-rtr002(config-router)#network 10.10.2.0 0.0.0.255 area 0
+sr-rtr002(config-router)#network 44.44.44.44 0.0.0.0 area 2
+sr-rtr002(config-router)#end
+sr-rtr002#wr
 ```
 
 ## Step 3: Verify the Underlay

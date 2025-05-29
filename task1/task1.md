@@ -1,6 +1,6 @@
 # Configure OSPF for the Underlay 
 
- The routers in the network have IP connectivity established between each other, but no routing protocols.  Since we will be using Segment Routing, we need to use a routing protocol that has been **extended** to support SR. OSPF and IS-IS have these extensions. In this task you will configure OSPF between all transport network routers, add Segment Routing and validate all configurations through various **show** commands.
+ The routers in the network have IP connectivity established between each other already, but no routing protocols configured.  Since we will be using Segment Routing, we need to use a routing protocol that has been **extended** to support SR. OSPF and IS-IS have these extensions in the form of TLV's. In this task you will configure OSPF between all transport network routers, enable Segment Routing and validate all configurations through various **show** commands.
 
 ```
 The transport network consists of four routers:
@@ -15,9 +15,9 @@ sr-pe002
 > Changes made in IOS-XR  do not take effect until they have been committed.  If the changes configured are not possible to be committed due to an error, none of the changes will be committed until the error has been fixed.  To commit a configuration, simply type ‘commit’.  To view the reason for an erroneous commit, type ‘commit show’. 
 
 
-## Step 1 - Configure the OSPF Process
+## Step 1 - Configure the OSPF Process on all provider routers
 
-IOS-XR configures its services and protocols at the process level.  For example, all OSPF configurations occur within the ‘router ospf’ process.   Bridge domains and virtual cross connects are configured under ‘l2vpn’.  This is important as we move forward as other operating systems that you may be familiar with may be different and allow you to configure these items under their respective interfaces.
+IOS-XR configures its services and protocols at the process level.  For example, all OSPF configurations occur within the ‘router ospf’ process while bridge domains and virtual cross connects are configured under ‘l2vpn’ process.  This is important as we move forward as other operating systems that you may be familiar with may be different and allow you to configure these items under their respective interfaces.
 
 1. Configure OSPF process '1'
 
@@ -32,8 +32,13 @@ IOS-XR configures its services and protocols at the process level.  For example,
 (config-ospf)#fast-reroute per-prefix
 (config-ospf)#fast-reroute per-prefix ti-lfa enable
 
-
 (config-ospf)#network point-to-point
+
+```
+
+3. Configure Segment routing.
+
+```bash
 
 (config-ospf)#segment-routing mpls
 (config-ospf)#segment-routing forwarding mpls
@@ -55,27 +60,26 @@ The last two items we need to configure in the global OSPF context before we beg
 </pre></code></details>  
 
 
-## Step 2 - Add Loopbacks, Configure Area backbone area
+## Step 2 - Add Loopbacks, Configure Backbone Area
 
 In this step you will add a loopback to each router.  The loopback is critical for both underlay and overlay control and dataplane operations. 
 
-1. Configure loopbacks
+1. Configure loopback interfaces.
 
 Use the following addresses for each P and PE router, respectively:
+
+Device      |  IP address    
+----------  | :------------ 
+Sr-p001     | 1.1.1.1/32  
+Sr-p002     | 2.2.2.2/32 
+Sr-pe001    | 3.3.3.3/32
+Sr-pe002    | 4.4.4.4/32   
+
 ``` bash 
-Sr-p001: 1.1.1.1/32
-Sr-p002: 2.2.2.2/32
-Sr-pe001: 3.3.3.3/32
-Sr-pe002: 4.4.4.4/32  
-
-(config-ospf)#
-(config-ospf)#int loopback0
-(config-if)#ip address x.x.x.x/32 
-!see list above for ip address for each router
-Return to ospf configuration mode and commit changes made thus far.
-
-(config-if)#router ospf 1
-(config-ospf)# commit
+(config)#
+(config)#int loopback0
+(config-if)#ip address x.x.x.x/32
+(config-if)# commit
 
 ```
 
@@ -86,7 +90,7 @@ RP/0/RP0/CPU0:sr-p001#show ip int br
 Wed May  7 15:33:42.470 UTC
 
 Interface                      IP-Address      Status          Protocol Vrf-Name
-Loopback0                      1.1.1.1         Up              Up       default
+<strong>Loopback0                      1.1.1.1         Up              Up       default </strong>
 HundredGigE0/0/0/0             10.1.11.1       Up              Up       default
 HundredGigE0/0/0/1             10.1.21.1       Up              Up       default
 HundredGigE0/0/0/2             unassigned      Shutdown        Down     default
@@ -98,10 +102,11 @@ HundredGigE0/0/0/5             unassigned      Shutdown        Down     default
 
 2. Configure OSPF on each interface
 
-The interfaces with ip addresses in the default vrf will need to be added to Area 0.  Proceed by adding the interfaces on each router to OSPF Area 0 and commit your changes.  Do this for all P and PE routers.   
+The interfaces with ip addresses in the default vrf will need to be added to Area 0.  Proceed by going back into the OSPF process, adding the interfaces on each router to Area 0 and commit your changes.  Do this for all P and PE routers.   
 
-Here is the configuration for sr-p001:
+Here a configuration snippet from sr-p001:
 ```bash
+(config)#router ospf 1 
 (config-ospf)#area 0
 (config-ospf-ar)#int hu0/0/0/0
 (config-ospf-ar-if)#exit
@@ -110,10 +115,20 @@ Here is the configuration for sr-p001:
 (config-ospf-ar)#int hu0/0/0/3
 (config-ospf-ar-if)#exit
 (config-ospf-ar)#int lo0
+(config-ospf-ar-if)#exit
 (config-ospf-ar)#commit
 ```
 
-3. Add prefix-SID to each router's loopback 
+
+
+
+## Step 3 - Add prefix-SID to each router's loopback 
+
+In this step you will configure the prefix SID assoication for each routers loopback interface. 
+
+> [!NOTE] 
+> Ensure that you are under the OSPF process, in area 0 and configuring the loopback interfaces for the prefix-SID. 
+
 
 Here are the prefix-sid absolute values for each node.  Configure these values, commit your changes, and exit configuration mode:
 
@@ -124,12 +139,11 @@ Sr-p002     | 16002
 Sr-pe001    | 16003   
 Sr-pe002    | 16004   
 
-
-> [!NOTE] 
-> Ensure that you are under the OSPF process, in area 0 and configuring the loopback interfaces for the prefix-SID. 
-
 ```bash
-(config-ospf-ar-if)#prefix-sid absolute xxxxx
+(config)#router ospf 1 
+(config-ospf)#area 0
+(config-ospf-ar)#interface loopback0
+(config-ospf-ar-if)#prefix-sid absolute [Label_per_router_per_table]
 (config-ospf-ar-if)#commit
 (config-ospf-ar-if)#end
 ```
@@ -139,7 +153,7 @@ Sr-pe002    | 16004
 </pre></code></details> <br>
 
 
-## Step 3 - Validate OSPF
+## Step 4 - Validate OSPF
 
 Check OSPF adjacencies on each node.  Nodes sr-p001 and sr-p002 should have **three** adjacencies and sr-pe001 and sr-pe002 should have **two**, each.
 
@@ -254,7 +268,7 @@ L    10.1.33.1/32 is directly connected, 04:31:47, HundredGigE0/0/0/3
 > the ‘(!)’ at the end of some of the loopback routes.  These are the routes protected by FRR.  These routes are installed in the FIB as a backup route in the event the primary path fails.  With these backup routes, the router does not need to wait for OSPF to reconverge before forwarding packets again.
 
 
-## Step 4 - Validate Segment Routing Labels
+## Step 5 - Validate Segment Routing Labels
 
 All Segment-Routing labels are stored in and advertised to other nodes by the IGP, in our case OSPF.  We can see the labels assigned and validate that SR is running by inspecting both the MPLS forwarding plane and the OSPF opaque database.   
 

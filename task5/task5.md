@@ -11,17 +11,14 @@ Recall that another term for Segment Routing is 'Source Routing'.  This is becau
 
 Run the following script on sr-pe001:
 ```bash
-RP/0/RP0/CPU0:sr-pe001#conf t
-RP/0/RP0/CPU0:sr-pe001(config)#segment-routing
-RP/0/RP0/CPU0:sr-pe001(config-sr)#traffic-eng
-RP/0/RP0/CPU0:sr-pe001(config-sr-te)#segment-list 1to2extrahop
-RP/0/RP0/CPU0:sr-pe001(config-sr-te-sl)#index 10 mpls label 16001
-RP/0/RP0/CPU0:sr-pe001(config-sr-te-sl)#index 20 mpls label 16002
-RP/0/RP0/CPU0:sr-pe001(config-sr-te-sl)#index 30 mpls label 16004
-RP/0/RP0/CPU0:sr-pe001(config-sr-te-sl)#commit
-RP/0/RP0/CPU0:sr-pe001(config-sr-te-sl)#end
-RP/0/RP0/CPU0:sr-pe001#
-
+(config)#segment-routing
+(config-sr)#traffic-eng
+(config-sr-te)#segment-list 1to2extrahop
+(config-sr-te-sl)#index 10 mpls label 16001
+(config-sr-te-sl)#index 20 mpls label 16002
+(config-sr-te-sl)#index 30 mpls label 16004
+(config-sr-te-sl)#commit
+(config-sr-te-sl)#end
 ```
 
 ## Step 2: Configure SR-TE policy
@@ -33,17 +30,15 @@ Every policy consists of at least one candidate path.  The router will calculate
 
 Run this script on sr-pe001:
 ```bash
-RP/0/RP0/CPU0:sr-pe001#conf
-RP/0/RP0/CPU0:sr-pe001(config)#segment-routing
-RP/0/RP0/CPU0:sr-pe001(config-sr)#traffic-eng
-RP/0/RP0/CPU0:sr-pe001(config-sr-te)#policy my_first_SR-TE_policy
-RP/0/RP0/CPU0:sr-pe001(config-sr-te-policy)#color 5001 end-point ipv4 4.4.4.4
-RP/0/RP0/CPU0:sr-pe001(config-sr-te-policy)#candidate-paths
-RP/0/RP0/CPU0:sr-pe001(config-sr-te-policy-path)#preference 100
-RP/0/RP0/CPU0:sr-pe001(config-sr-te-policy-path-pref)#explicit segment-list 1to2extrahop
-RP/0/RP0/CPU0:sr-pe001(config-sr-te-pp-info)#commit
-RP/0/RP0/CPU0:sr-pe001(config-sr-te-pp-info)#end
-RP/0/RP0/CPU0:sr-pe001#
+(config)#segment-routing
+(config-sr)#traffic-eng
+(config-sr-te)#policy my_first_SR-TE_policy
+(config-sr-te-policy)#color 5001 end-point ipv4 4.4.4.4
+(config-sr-te-policy)#candidate-paths
+(config-sr-te-policy-path)#preference 100
+(config-sr-te-policy-path-pref)#explicit segment-list 1to2extrahop
+(config-sr-te-pp-info)#commit
+(config-sr-te-pp-info)#end
 ```
 
 ## Step 3: Steer service traffic into the policy
@@ -54,7 +49,7 @@ Recall that the router will identify the SR-TE policy by the tuple naming standa
 ```bash
 show segment-routing traffic-eng policy color 5001
 ```
-```angular2html
+```
 SR-TE policy database
 ---------------------
 
@@ -100,27 +95,22 @@ We need to use the tuple identification name the router created to steer the ser
 
 Run the following script on sr-pe001:
 ```bash
-RP/0/RP0/CPU0:sr-pe001#conf t
-RP/0/RP0/CPU0:sr-pe001(config)#l2vpn
-RP/0/RP0/CPU0:sr-pe001(config-l2vpn)# pw-class servers-te
-RP/0/RP0/CPU0:sr-pe001(config-l2vpn-pwc)#  encapsulation mpls
-RP/0/RP0/CPU0:sr-pe001(config-l2vpn-pwc-mpls)#   preferred-path sr-te policy srte_c_5001_ep_4.4.4.4
-RP/0/RP0/CPU0:sr-pe001(config-l2vpn-pwc-mpls)#commit
-RP/0/RP0/CPU0:sr-pe001(config-l2vpn-pwc-mpls)#end
-RP/0/RP0/CPU0:sr-pe001#
-
+(config)#l2vpn
+(config-l2vpn)# pw-class servers-te
+(config-l2vpn-pwc)#  encapsulation mpls
+(config-l2vpn-pwc-mpls)#   preferred-path sr-te policy srte_c_5001_ep_4.4.4.4
+(config-l2vpn-pwc-mpls)#commit
+(config-l2vpn-pwc-mpls)#end
 ```
 Now that the psuedowire-class has been created, we can assign it to EVI 1001 to change the path of the servers' service:
 ```bash
-RP/0/RP0/CPU0:sr-pe001#conf t
-RP/0/RP0/CPU0:sr-pe001(config)#l2vpn
-RP/0/RP0/CPU0:sr-pe001(config-l2vpn)#xconnect group servers
-RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc)#p2p UNTAGGED
-RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc-p2p)#neighbor evpn evi 1001 target 21001 source 11001
-RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc-p2p-pw)#pw-class servers-te
-RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc-p2p-pw)#commit
-RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc-p2p-pw)#end
-RP/0/RP0/CPU0:sr-pe001#
+(config)#l2vpn
+(config-l2vpn)#xconnect group servers
+(config-l2vpn-xc)#p2p UNTAGGED
+(config-l2vpn-xc-p2p)#neighbor evpn evi 1001 target 21001 source 11001
+(config-l2vpn-xc-p2p-pw)#pw-class servers-te
+(config-l2vpn-xc-p2p-pw)#commit
+(config-l2vpn-xc-p2p-pw)#end
 ```
 ## Step 3: Verify the policy is working
 Log in to server001 and ping server002, 10.10.1.2.  If the ping is working, let it continue to run.

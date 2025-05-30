@@ -1,44 +1,49 @@
 # Configure IOS routers for OSPF in Server Overlay 
 
 In this Task we will configure a second EVPN VPWS to create a Layer 2 adjacency between two IOS-XE L3 switches.  These switches are pre-configured with a loopback and routed interfaces.  We will need to start an OSPF process and ensure and adjacency forms.  Since these interfaces are in the overlay, the underlay's OSPF domain will not interact with them.
+
 ## Step 1: Configure EVPN service for IOS-XE L3 Switches
-Create the EVPN service.  Use the following information to create your EVPN:
-```angular2html
+
+1. Create the EVPN service.
+
+```
 EVI:  1002
 sr-pe001 AC-ID: 11002
 sr-pe002 AC-ID: 21002
 AC interface ID of both routers: Hu0/0/0/2
 dot1q tag:  untagged
 ```
+
 On sr-pe001:
 ```bash
-RP/0/RP0/CPU0:sr-pe001(config)#int hu0/0/0/2
-RP/0/RP0/CPU0:sr-pe001(config-if)#no shut
-RP/0/RP0/CPU0:sr-pe001(config-if)#int hu0/0/0/2.1 l2transport
-RP/0/RP0/CPU0:sr-pe001(config-subif)#encapsulation untagged
-RP/0/RP0/CPU0:sr-pe001(config-subif)#no shut
-RP/0/RP0/CPU0:sr-pe001(config-subif)#l2vpn
-RP/0/RP0/CPU0:sr-pe001(config-l2vpn)#xconnect group routers
-RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc)#p2p UNTAGGED
-RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc-p2p)#interface hu0/0/0/2.1
-RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc-p2p)#neighbor evpn evi 1002 target 2100$
-RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc-p2p-pw)#commit
-RP/0/RP0/CPU0:sr-pe001(config-l2vpn-xc-p2p-pw)#end
+(config)#int hu0/0/0/2
+(config-if)#no shut
+(config-if)#int hu0/0/0/2.1 l2transport
+(config-subif)#encapsulation untagged
+(config-subif)#no shut
+(config-subif)#l2vpn
+(config-l2vpn)#xconnect group routers
+(config-l2vpn-xc)#p2p UNTAGGED
+(config-l2vpn-xc-p2p)#interface hu0/0/0/2.1
+(config-l2vpn-xc-p2p)#neighbor evpn evi 1002 target 2100$
+(config-l2vpn-xc-p2p-pw)#commit
+(config-l2vpn-xc-p2p-pw)#end
 ```
+
 On sr-pe002:
 ```bash
-RP/0/RP0/CPU0:sr-p002(config)#int hu0/0/0/2
-RP/0/RP0/CPU0:sr-p002(config-if)#no shut
-RP/0/RP0/CPU0:sr-p002(config-if)#int hu0/0/0/2.1 l2transport
-RP/0/RP0/CPU0:sr-p002(config-subif)#encapsulation untagged
-RP/0/RP0/CPU0:sr-p002(config-subif)#no shut
-RP/0/RP0/CPU0:sr-p002(config-subif)#l2vpn
-RP/0/RP0/CPU0:sr-p002(config-l2vpn)#xconnect group routers
-RP/0/RP0/CPU0:sr-p002(config-l2vpn-xc)#p2p UNTAGGED
-RP/0/RP0/CPU0:sr-p002(config-l2vpn-xc-p2p)#interface hu0/0/0/2.1
-RP/0/RP0/CPU0:sr-p002(config-l2vpn-xc-p2p)#neighbor evpn evi 1002 target 11002$
-RP/0/RP0/CPU0:sr-p002(config-l2vpn-xc-p2p-pw)#commit
-RP/0/RP0/CPU0:sr-p002(config-l2vpn-xc-p2p-pw)#end
+(config)#int hu0/0/0/2
+(config-if)#no shut
+(config-if)#int hu0/0/0/2.1 l2transport
+(config-subif)#encapsulation untagged
+(config-subif)#no shut
+(config-subif)#l2vpn
+(config-l2vpn)#xconnect group routers
+(config-l2vpn-xc)#p2p UNTAGGED
+(config-l2vpn-xc-p2p)#interface hu0/0/0/2.1
+(config-l2vpn-xc-p2p)#neighbor evpn evi 1002 target 11002$
+(config-l2vpn-xc-p2p-pw)#commit
+(config-l2vpn-xc-p2p-pw)#end
 ```
 
 ## Step 2: Configure IOS-XE switches
@@ -48,7 +53,7 @@ sr-rtr001:
 ```bash
 show ip int brief
 ```
-```angular2html
+```
 Interface           IP-Address      OK?     Method  Status                  Protocol
 GigabitEthernet0/0  198.18.128.60   YES     NVRAM   up                      up
 GigabitEthernet0/1  unassigned      YES     NVRAM   administratively down   down 
@@ -62,7 +67,7 @@ sr-rtr002:
 ```bash
 sh ip int br
 ```
-```angular2html
+```
 Interface           IP-Address      OK?     Method Status                   Protocol
 GigabitEthernet0/0  198.18.128.61   YES     NVRAM up                        up
 GigabitEthernet0/1  unassigned      YES     NVRAM administratively down     down
@@ -76,22 +81,20 @@ In IOS-XE, we can create OSPF interfaces based on the network membership.  On sr
 
 Run the following script on sr-rtr001:
 ```bash
-sr-rtr001#conf t
-sr-rtr001(config)#router ospf 1
-sr-rtr001(config-router)#network 10.10.2.0 0.0.0.255 area 0
-sr-rtr001(config-router)#network 33.33.33.33 0.0.0.0 area 1
-sr-rtr001(config-router)#end
-sr-rtr001#wr
+(config)#router ospf 1
+(config-router)#network 10.10.2.0 0.0.0.255 area 0
+(config-router)#network 33.33.33.33 0.0.0.0 area 1
+(config-router)#end
+#wr
 ```
 
 Run this script on sr-rtr002:
 ```bash
-sr-rtr002#config t
-sr-rtr002(config)#router ospf 1
-sr-rtr002(config-router)#network 10.10.2.0 0.0.0.255 area 0
-sr-rtr002(config-router)#network 44.44.44.44 0.0.0.0 area 2
-sr-rtr002(config-router)#end
-sr-rtr002#wr
+(config)#router ospf 1
+(config-router)#network 10.10.2.0 0.0.0.255 area 0
+(config-router)#network 44.44.44.44 0.0.0.0 area 2
+(config-router)#end
+#wr
 ```
 
 ## Step 3: Verify the Underlay
@@ -101,7 +104,7 @@ On sr-pe001:
 ```bash
 show bgp l2vpn evpn
 ```
-```angular2html
+```bash
 Status codes: s suppressed, d damped, h history, * valid, > best
 i - internal, r RIB-failure, S stale, N Nexthop-discard
 Origin codes: i - IGP, e - EGP, ? - incomplete
@@ -135,7 +138,7 @@ Check the MPLS forwarding table on sr-pe001:
 ```bash
 show mpls forwarding
 ```
-```angular2html
+```
 Thu May 2 14:28:42.211 UTC
 Local  Outgoing    Prefix             Outgoing     Next Hop        Bytes       
 Label  Label       or ID              Interface                    Switched    
@@ -165,7 +168,7 @@ Return to the L3 switches to verify the two have become OSPF neighbors.  On sr-r
 ```bash
 show ip ospf neighbor
 ```
-```angular2html
+```
 Neighbor ID     Pri     State   Dead Time   Address     Interface
 44.44.44.44     1       FULL/DR 00:00:38    10.10.2.2   GigabitEthernet0/2
 ```
@@ -173,7 +176,7 @@ And on sr-rtr002:
 ```bash
 show ip ospf neighbor
 ```
-```angular2html
+```an
 Neighbor ID     Pri State       Dead Time   Address     Interface
 33.33.33.33     1   FULL/BDR    00:00:35    10.10.2.1   GigabitEthernet0/2
 ```
@@ -181,7 +184,7 @@ Verify the route tables on both switches.  on sr-rtr001:
 ```bash
 show ip route
 ```
-```angular2html
+```
 <snip>
 10.0.0.0/8 is variably subnetted, 2 subnets, 2 masks
 C       10.10.2.0/24 is directly connected, GigabitEthernet0/2
@@ -195,7 +198,7 @@ on sr-rtr002:
 ```bash
 show ip route
 ```
-```angular2html
+```
 <snip>
       10.0.0.0/8 is variably subnetted, 2 subnets, 2 masks
 C        10.10.2.0/24 is directly connected, GigabitEthernet0/2
@@ -209,7 +212,7 @@ Now ping from sr-rtr001's loopback to sr-rtr002's loopback:
 ```bash
 ping 44.44.44.44 source lo0
 ```
-```angular2html
+```
 Type escape sequence to abort.
 Sending 5, 100-byte ICMP Echos to 44.44.44.44, timeout is 2 seconds:
 Packet sent with a source address of 33.33.33.33

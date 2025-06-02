@@ -221,22 +221,28 @@ Processed 3 prefixes, 4 paths
 ```bash
 Route Distinguisher: 3.3.3.3:1001 (default for vrf VPWS:1001)
 ```
-This is the circuit's Route Distinguisher on the local router.  The RD is 3.3.3.3:1001 which is broken down into the local router's BGP router-id : circuit EVI number.  This is how we identify the VPN and the PE node.
+This is the circuit's Route Distinguisher on the local router.  The RD is 3.3.3.3:1001 which is broken down into the 
+local router's BGP router-id : circuit EVI number.  This is how we identify the VPN and the PE node.
 ```angular2html
 *> [1][0000.0000.0000.0000.0000][11001]/120 0.0.0.0                 0       i 
 *>i[1][0000.0000.0000.0000.0000][21001]/120 4.4.4.4         100     0       i
 ```
 These are the 'routes' for this VPN.  Broken down, we see 
 * [1]: BGP EVPN route type 1.  Route Type 1 is always used for VPWS circuits
-* [0000.0000.0000.0000.0000]: Ethernet Segment Identifier for the PE's AC. VPWS is a singular point to point, so there is only one AC per PE.  Hence, all zeros's.
+* [0000.0000.0000.0000.0000]: Ethernet Segment Identifier for the PE's AC. VPWS is a singular point to point, so 
+there is 
+only one AC per PE.  Hence, all zeros's.
 * [11001] and [21001]: source and target AC identifiers for each PE
 * /120: Administrative Distance for this route.  Default AD for iBGP routes is 120.
 
-The next hop for each 'route' is listed as 0.0.0.0 (local router) and 4.4.4.4 (remote PE node).  The router is smart enough to not route packets that have been sourced on the local AC back to itself, so it will forward all ingress packets to the next hop, 4.4.4.4.
+The next hop for each 'route' is listed as 0.0.0.0 (local router) and 4.4.4.4 (remote PE node).  The router is smart 
+enough to not route packets that have been sourced on the local AC back to itself, so it will forward all ingress 
+packets to the next hop, 4.4.4.4.
 
 The RD 4.4.4.4:1001 and its associated routes is what is learned from the remote PE, sr-pe002.
 
-BGP also advertises the service labels for each circuit. Traditionally this was done by LDP. To see the labels that are advertised, run the following command on each PE node: <br></pre></code></details>  
+BGP also advertises the service labels for each circuit. Traditionally this was done by LDP. To see the labels that 
+are advertised, run the following command on each PE node: <br></pre></code></details>  
 
 
 3. Show BGP L2VPN EVPN table with labels 
@@ -264,7 +270,11 @@ Processed 3 prefixes, 4 paths
 
 ```
 <details><summary><font size=4> Expand for EVPN Table Details with Labels </summary><pre><code></font>
-RD 4.4.4.4:1001 has two routes, one with destination of the local router (its outbound advertisement to neighbors) and one with destination remote PE router 3.3.3.3.  The local router doesnt have a label from the local router's perspective.  This is why there is no label for the local route.  However, we see the service label of 24004 advertised from remote node 3.3.3.3.  Any SR-MPLS packets forwarded from the local router to node 3.3.3.3 for this service will have label 24004 pushed onto the bottom of its label stack. <br></pre></code></details>  
+RD 4.4.4.4:1001 has two routes, one with destination of the local router (its outbound advertisement to neighbors) and 
+one with destination remote PE router 3.3.3.3.  The local router doesnt have a label from the local router's perspective.  
+This is why there is no label for the local route.  However, we see the service label of 24004 advertised from remote 
+node 3.3.3.3.  Any SR-MPLS packets forwarded from the local router to node 3.3.3.3 for this service will have label 24004
+pushed onto the bottom of its label stack. <br></pre></code></details>  
 
 ## Step 4: Verify the underlay--MPLS Forwarding
 

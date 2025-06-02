@@ -48,15 +48,22 @@ IOS-XR configures its services and protocols at the process level.  For example,
 > You have just configured segment routing! That's it, it's that simple to enable segment routing extension in the routing protocol.    
 
 <details><summary><font size=4> Expand for FRR and TI-LFA Details  </summary><pre><code></font>
-Under the global configuration for OSPF we configure context, enable the fast-reroute (FRR) and topology-independent loop free alternate (TI-LFA).  By enabling it at the global OSPF context, it turns the feature on for all areas and interfaces that are using the OSPF protocol. You may also turn these on or off at the area or interface levels. <br>
+Under the global configuration for OSPF we configure context, enable the fast-reroute (FRR) and topology-independent loop 
+free alternate (TI-LFA).  By enabling it at the global OSPF context, it turns the feature on for all areas and interfaces 
+that are using the OSPF protocol. You may also turn these on or off at the area or interface levels. <br>
 
-For **FRR**, we have the option of using per-link or per-prefix FRR.  Per-link will create a single backup route for all routes on a specific egress link.  Per-prefix will create a backup route per route, regardless of egress link.  Per-prefix is more granular and flexible than per-link and is the recommended setting.<br>
+For **FRR**, we have the option of using per-link or per-prefix FRR.  Per-link will create a single backup route for all 
+routes on a specific egress link.  Per-prefix will create a backup route per route, regardless of egress link.  
+Per-prefix is more granular and flexible than per-link and is the recommended setting.<br>
 
-**TI-LFA** builds a backup, loop-free labeled path to a destination prefix via an optimal routed path. This backup path is used by a transit node until the IGP finishes converging.<br>
+**TI-LFA** builds a backup, loop-free labeled path to a destination prefix via an optimal routed path. This backup path is 
+used by a transit node until the IGP finishes converging.<br>
 
-Since our links are all point to point links, we can take advantage of OSPF’s point to point network type at the global OSPF process context as well.<br>
+Since our links are all point to point links, we can take advantage of OSPF’s point to point network type at the global 
+OSPF process context as well.<br>
 
-The last two items we need to configure in the global OSPF context before we begin configuring our Area 0 is the Segment Routing control and dataplanes.<br>
+The last two items we need to configure in the global OSPF context before we begin configuring our Area 0 is the Segment 
+Routing control and dataplanes.<br>
 </pre></code></details>  
 
 
@@ -148,8 +155,11 @@ Sr-pe002    | 16004
 (config-ospf-ar-if)#end
 ```
 <details><summary><font size=4> Expand for prefix-sid details </summary><pre><code></font>
-  This is like an identification label for the node.  In practice, you may use either an index or absolute value for the prefix-sid.  An index adds the value of the configured index to the starting value of the Global Segment range.  By default, the range starts at 16000 and goes to 23999, whereas an absolute value is the actual value of the label you wish to configure.   
-   For example, an index of 101 will configure 16101 as the prefix-sid.  And absolute index of 17001 will configure 17001 as the prefix-sid.
+ This is like an identification label for the node.  In practice, you may use either an index or absolute value for the 
+ prefix-sid.  An index adds the value of the configured index to the starting value of the Global Segment range.  By 
+ default, the range starts at 16000 and goes to 23999, whereas an absolute value is the actual value of the label you 
+ wish to configure. For example, an index of 101 will configure 16101 as the prefix-sid.  And absolute index of 17001 
+ will configure 17001 as the prefix-sid.
 </pre></code></details> <br>
 
 
@@ -312,7 +322,9 @@ In the example output from sr-p001, we see the dynamic adjacency-sid labels assi
 In addition to the adjacency-sids, we also see the prefix-sids that we configured for interface loopback 0 in OSPF. These prefix-sids are highlighted at the top of the output.  You will see back up paths here as well with outgoing labels to complete the backup LSP.
 
 <details><summary><font size=4> Expand for MPLS label table view </summary><pre><code></font>
- Another view of Segment Routing labels is in the MPLS Label Table, which is the database of all local labels created by the router, and how it knows them. Review each router’s label table:
+ Another view of Segment Routing labels is in the MPLS Label Table, which is the database of all local labels created by 
+ the router, and how it knows them. 
+ Review each router’s label table:
  
  ```bash
  RP/0/RP0/CPU0:sr-p001#show mpls label table
@@ -329,11 +341,14 @@ Table Label   Owner                           State  Rewrite
 0     24003   OSPF(A):ospf-1                  InUse  Yes
 0     24004   OSPF(A):ospf-1                  InUse  Yes
 0     24005   OSPF(A):ospf-1                  InUse  Yes
- What we are seeing here is the global SR label database starts at 16000, which is the default value.  Next, we see 24000, which is the start of the dynamic label database space.  Labels 24001-24005 are the dynamic labels that were automatically generated by the router’s segment routing process and the advertised via the IGP process, OSPF process 1.
+What we are seeing here is the global SR label database starts at 16000, which is the default value.  Next, we see 24000, which
+is the start of the dynamic label database space.  Labels 24001-24005 are the dynamic labels that were automatically generated
+by the router’s segment routing process and the advertised via the IGP process, OSPF process 1.
  For even more detailed information of the Label Switch Database (LSD), check the output of ‘show mpls lsd forwarding details’.   
  ```
  > [!NOTE]
- >This command will deliver a lot of data that is outside the scope of this lab, but will give you extra information for future troubleshooting and understanding of the SR-MPLS forwarding plane.
+ >This command will deliver a lot of data that is outside the scope of this lab, but will give you extra information
+> for future troubleshooting and understanding of the SR-MPLS forwarding plane.
 
  </pre></code></details> <br>
 

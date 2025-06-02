@@ -9,7 +9,7 @@ Creating this policy requires three steps:
 ## Step 1: Configure SID-List
 Recall that another term for Segment Routing is 'Source Routing'.  This is because the instructions are delivered at the source, or beginning, of the path.  Because sr-pe001 is the beginning of our EVPN circuit, we need to create an explicit SID-List on the sr-pe001 node.  This process requires you to make an indexed list of SIDs that will be used as the label stack for the packets in the service.  The highest numbered index will be on the bottom of the stack as the routers will read the stack top-down.  We will use the SIDs of the routers sr-p001, sr-p002, and sr-pe002 to create the SID-list.
 
-Run the following script on sr-pe001:
+Apply the following configuration on sr-pe001:
 ```bash
 (config)#segment-routing
 (config-sr)#traffic-eng
@@ -25,10 +25,15 @@ Run the following script on sr-pe001:
 All policies follow the {color,endpoint} tuple identification standard.  You may create a policy with a friendly name in your configuration, but the router will identify the policy based on the tuple name, represented  as 'srte_c_<color>_ep_<endpoint>'.  We will create a policy with a friendly name then apply the policy in Step 3 using the tuple representation.
 
 As you  may have observed, you need a color and the endpoint to uniquely identify this policy on the router.  We will use the color '5001' and keep the endpoint ip of '4.4.4.4'.
+<details><summary><font size=4> Expand for SR-TE Policy details  </summary><pre><code></font>
+Every policy consists of at least one candidate path.  The router will calculate the validity of a candidate path 
+and will use the valid path with the highest preference.  If a candidate path becomes invalid at any time for any 
+reason, it wil lbe marked operationally down and the next candidate path will be used.  If there are no valid 
+candidate paths available, the default behavior will be to use the IGP.  It is possible to force the policy to 
+drop packets in the event there are no valid paths.
+<br></pre></code></details> 
 
-Every policy consists of at least one candidate path.  The router will calculate the validity of a candidate path and will use the valid path with the highest preference.  If a candidate path becomes invalid at any time for any reason, it wil lbe marked operationally down and the next candidate path will be used.  If there are no valid candidate paths available, the default behavior will be to use the IGP.  It is possible to force the policy to drop packets in the event there are no valid paths.
-
-Run this script on sr-pe001:
+Apply the following configuration on sr-pe001:
 ```bash
 (config)#segment-routing
 (config-sr)#traffic-eng
@@ -79,7 +84,8 @@ Color: 5001, End-point: 4.4.4.4
     Max Install Standby Candidate Paths: 0
     Path Type: SRMPLSv4
 ```
-The friendly name is listed under the Candidate-paths section of the output.  What we need for this Step is here:
+<details><summary><font size=4> Expand for Binding SID details  </summary><pre><code></font>
+The friendly name is listed under the Candidate-paths section of the output.  What we need for this step is here:
 
 > Color: 5001, End-point: 4.4.4.4<br>
 >  Name: srte_c_5001_ep_4.4.4.4
@@ -89,11 +95,13 @@ This is the router's tuple name for the policy.
 >Attributes:<br>
 > Binding SID: 24007
 
-This is the Binding SID number the router dynamically assigned to the policy.  It is possible to manually assign a Binding SID out of the local segment block.  If a Binding SID were statically assigned, it may be referenced by another policy on a remote router.
+This is the Binding SID number the router dynamically assigned to the policy.  It is possible to manually assign a 
+Binding SID out of the local segment block.  If a Binding SID were statically assigned, it may be referenced by 
+another policy on a remote router.
 
 We need to use the tuple identification name the router created to steer the service traffic into the policy.
-
-Run the following script on sr-pe001:
+<br></pre></code></details> 
+Apply the following configuration on sr-pe001:
 ```bash
 (config)#l2vpn
 (config-l2vpn)# pw-class servers-te
@@ -149,11 +157,12 @@ Color: 5001, End-point: 4.4.4.4
     Max Install Standby Candidate Paths: 0
     Path Type: SRMPLSv4
 ```
+<details><summary><font size=4> Expand for SR-TE Policy Validation details  </summary><pre><code></font>
 As we can see with this line,
 > Admin: up  Operational: up for 00:10:33 (since Apr 18 19:24:25.162)
 
 the path is up and operational.
-
+<br></pre></code></details> 
 Return to the Edge web browser and open the lab in CML.  Righ click on the link Hu0/0/0/0 between sr-pe001 and sr-p001.  select Packet Capture.  In the new tab that opens in the bottom pane, click 'Start'.
 
 You will see MPLS Switched Packets populate the capture pane.  Some of these packets may be return packets from sr-pe002.  Click on one of the packets and review the label stack.  You should see labels in the header with 16002 followed by 16004.  recall that node sr-pe001 will strip the first label, 16001, from the label stack before it forwards the packet to sr-p001 because label 16001 is the next hop from sr-pe001.

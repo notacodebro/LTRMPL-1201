@@ -1,367 +1,372 @@
-# Configure EVPN Servivces 
+# Configure OSPF for the Underlay 
 
-Some key terms for this task:
+ The routers in the network have IP connectivity established between each other already, but no routing protocols configured.  Since we will be using Segment Routing, we need to use a routing protocol that has been **extended** to support SR. OSPF and IS-IS have these extensions in the form of TLV's. In this task you will configure OSPF between all transport network routers, enable Segment Routing and validate all configurations through various **show** commands.
+
 ```
-Attachment Circuit (AC): egress point of a router facing the Customer Edge (CPE) device 
+The transport network consists of four routers:
 
-VPWS: Virtual Private Wire Service.  This is a point to point Layer 2 circuit 
-
-EVI:  EVPN Virtual Identifier.  This is the unique global identifier for an EVPN service
-```
-
-Both PE nodes in this network have two endpoints connected to them.  One endpoint type is a linux server, the other is an IOS-XE L3 switch.  Both linux servers need to talk to each other, and both switches need to talk to each other, but the linux hosts cannot talk to the switches.
-
-To complete this task, we need to create an attachment circuit for each device and an ethernet VPN(EVPN overlay) between the linux hosts and another between the switches.  We will also need to verify the underlay and the overlay is working correctly.
-
-### Important endpoint to switch mappings
-
-Endpoint    |  Port  | Switch   |  Port |
-----------  | ------ | -------  | ------
-server001   | eth0   | sr-pe001 | Hu0/0/0/4
-server002   | eth0   | sr-pe001 | Hu0/0/0/4
-sr-rtr001   | Gi0/2  | sr-pe001 | Hu0/0/0/2
-sr-rtr002   | Gi0/2  | sr-pe001 | Hu0/0/0/2
-
-
-Linux server circuit information:
-```bash
-EVI: 1001
-sr-pe001 AC: 11001
-sr-pe002 AC: 21001
-Vlan: untagged
+sr-p001
+sr-p002
+sr-pe001
+sr-pe002
 ```
 
-## Step 1: Configure Attachment Circuits on PE nodes
-
-1. Configure Subinterfaces on sr-pe001 and sr-pe002
-
-Configure Hu0/0/0/4.1 as an L2 subinterface, accepting untagged traffic, and no-shut the interface and its parent interface, Hu0/0/0/4.
-
-```bash
-(config)#int Hu0/0/0/4
-(config-if)#no shut
-(config-if)#int Hu0/0/0/4.1 l2transport
-(config-subif)#encapsulation untagged
-(config-subif)#no shut
-(config-subif)#commit
-```
-
-<details><summary><font size=4> Expand for L2transport details  </summary><pre><code></font>
-IOS-XR must have its interfaces configured as ‘l2transport’ before it will recognize strictly L2 traffic on a subinterface. After a subinterface is designated as an L2
-interface, it will understand that it must match the dot1q tag specified in its configuration in order to know which subinterface to pin traffic to. That subinterface is later assigned to a L2VPN service, thus stitching a tagged or untagged subinterface to a L2 service. <br></pre></code></details>  
+> [!IMPORTANT] 
+> Changes made in IOS-XR  do not take effect until they have been committed.  If the changes configured are not possible to be committed due to an error, none of the changes will be committed until the error has been fixed.  To commit a configuration, simply type ‘commit’.  To view the reason for an erroneous commit, type ‘commit show’. 
 
 
-## Step 2: Create EVPN Circuits on the PE Nodes
+## Step 1 - Configure the OSPF Process on all provider routers
 
-Now that the PE routers will know which ingress traffic will belong to this service, we can create the EVPN VPWS service itself. We will use xconnects to create the service. To complete this, we need a name for the xconnect group, and a name for the actual point-to-point circuit. These names are arbitrary, but should be useful to you, the engineer. Here, we will use group name ‘servers’ and p2p name ‘UNTAGGED’.
+IOS-XR configures its services and protocols at the process level.  For example, all OSPF configurations occur within the ‘router ospf’ process while bridge domains and virtual cross connects are configured under ‘l2vpn’ process.  This is important as we move forward as other operating systems that you may be familiar with may be different and allow you to configure these items under their respective interfaces.
 
-1. Create xconnect circuit and EVPN encapsulation on sr-pe001. 
+1. Configure OSPF process '1'
 
-```bash
-(config)#l2vpn
-(config-l2vpn)#xconnect group servers
-(config-l2vpn-xc)#p2p UNTAGGED
-(config-l2vpn-xc-p2p)#int hu0/0/0/4.1
-(config-l2vpn-xc-p2p)#neighbor evpn evi 1001 target 21001 source 11001
-(config-l2vpn-xc-p2p-pw)#commit
-```
-
-2. Create xconnect circuit and EVPN encapsulation on sr-pe002 
-
-```bash
-(config)#l2vpn
-(config-l2vpn)# xconnect group servers
-(config-l2vpn-xc)#  p2p UNTAGGED
-(config-l2vpn-xc-p2p)#interface HundredGigE0/0/0/4.1
-(config-l2vpn-xc-p2p)#neighbor evpn evi 1001 target 11001 source 21001
-(config-l2vpn-xc-p2p-pw)#commit
+``` bash 
+(conf)#router ospf 1
 ```
 
 
-## Step 3: Validate the overlay
+2. Configure Fast Re-Rroute and TI-LFA 
 
-At this time we should have a fully functional psuedowire between the two servers. We will validate on the servers as well as the PE routers. 
+``` bash 
+(config-ospf)#fast-reroute per-prefix
+(config-ospf)#fast-reroute per-prefix ti-lfa enable
 
-1. Validate xconnect status on sr-pe001 and sr-pe002
-
-```bash
-RP/0/RP0/CPU0:sr-pe002#show l2vpn xconnect
-Thu May 29 23:56:12.173 UTC
-Legend: ST = State, UP = Up, DN = Down, AD = Admin Down, UR = Unresolved,
-        SB = Standby, SR = Standby Ready, (PP) = Partially Programmed,
-        LU = Local Up, RU = Remote Up, CO = Connected, (SI) = Seamless Inactive
-
-XConnect                   Segment 1                       Segment 2
-Group      Name       ST   Description            ST       Description            ST
-------------------------   -----------------------------   -----------------------------
-servers    UNTAGGED   UP   Hu0/0/0/4.1            UP       EVPN 1001,11001,3.3.3.3
-                                                                                  UP
-----------------------------------------------------------------------------------------
-RP/0/RP0/CPU0:sr-pe002#
-```
-notice that each segment has an ST of *UP*. 
-
-
-2. Validate the EVPN on the servers
-
-For this step you will log into each server via SSH with Putty utilizing the provided password in the main page(cisco). Once logged in, validate the IP address and send 3 pings to the respective server. 
-
-```bash
-ip address show dev eth0
-```
-You should have output similar to below, verifying eth0's network facing the PE:
-
-```bash
-2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP qlen 1000
-    link/ether 52:54:00:1c:e3:53 brd ff:ff:ff:ff:ff:ff
-    inet 10.10.1.1/24 scope global eth0
-       valid_lft forever preferred_lft forever
-    inet6 fe80::5054:ff:fe1c:e353/64 scope link 
-       valid_lft forever preferred_lft forever
-```
-Ping the server002's eth0 interface:
-
-```bash
-server001:~$ ping 10.10.1.2 -c 3
-PING 10.10.1.2 (10.10.1.2): 56 data bytes
-64 bytes from 10.10.1.2: seq=0 ttl=42 time=5.440 ms
-64 bytes from 10.10.1.2: seq=1 ttl=42 time=5.608 ms
-64 bytes from 10.10.1.2: seq=2 ttl=42 time=5.277 ms
-
---- 10.10.1.2 ping statistics ---
-3 packets transmitted, 3 packets received, 0% packet loss
-round-trip min/avg/max = 5.277/5.441/5.608 ms
+(config-ospf)#network point-to-point
 
 ```
-Repeat for server002:
 
-```bash
-ip address show dev eth0
-```
-```bash
-2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc pfifo_fast state UP qlen 1000
-    link/ether 52:54:00:d2:5b:72 brd ff:ff:ff:ff:ff:ff
-    inet 10.10.1.2/24 scope global eth0
-       valid_lft forever preferred_lft forever
-    inet6 fe80::5054:ff:fed2:5b72/64 scope link 
-       valid_lft forever preferred_lft forever
-```
-```bash
-server002:~$ ping 10.10.1.1 -c 3
-PING 10.10.1.1 (10.10.1.1): 56 data bytes
-64 bytes from 10.10.1.1: seq=0 ttl=42 time=5.511 ms
-64 bytes from 10.10.1.1: seq=1 ttl=42 time=9.494 ms
-64 bytes from 10.10.1.1: seq=2 ttl=42 time=5.519 ms
-
---- 10.10.1.1 ping statistics ---
-3 packets transmitted, 3 packets received, 0% packet loss
-round-trip min/avg/max = 5.511/6.841/9.494 ms
-server002:~$
-```
-
-## Step 3: Verify the underlay -- BGP -- On PE nodes 
-
-BGP advertises the PE endpoints of each circuit and also the service label associated with the circuit on each PE. The service label is dynamic and may differ from what you see in the output below.
-
-1. Show the BGP L2VPN table on sr-pe001 - EVPN SAFI
+3. Configure Segment routing.
 
 ```bash
 
-RP/0/RP0/CPU0:sr-pe001#show bgp l2vpn evpn
-Fri May 30 00:12:38.708 UTC
-BGP router identifier 3.3.3.3, local AS number 65001
+(config-ospf)#segment-routing mpls
+(config-ospf)#segment-routing forwarding mpls
+```
+
+> [!IMPORTANT] 
+> You have just configured segment routing! That's it, it's that simple to enable segment routing extension in the routing protocol.    
+
+<details><summary><font size=4> Expand for FRR and TI-LFA Details  </summary><pre><code></font>
+Under the global configuration for OSPF we configure context, enable the fast-reroute (FRR) and topology-independent loop 
+free alternate (TI-LFA).  By enabling it at the global OSPF context, it turns the feature on for all areas and interfaces 
+that are using the OSPF protocol. You may also turn these on or off at the area or interface levels. <br>
+
+For **FRR**, we have the option of using per-link or per-prefix FRR.  Per-link will create a single backup route for all 
+routes on a specific egress link.  Per-prefix will create a backup route per route, regardless of egress link.  
+Per-prefix is more granular and flexible than per-link and is the recommended setting.<br>
+
+**TI-LFA** builds a backup, loop-free labeled path to a destination prefix via an optimal routed path. This backup path is 
+used by a transit node until the IGP finishes converging.<br>
+
+Since our links are all point to point links, we can take advantage of OSPF’s point to point network type at the global 
+OSPF process context as well.<br>
+
+The last two items we need to configure in the global OSPF context before we begin configuring our Area 0 is the Segment 
+Routing control and dataplanes.<br>
+</pre></code></details>  
+
+
+## Step 2 - Add Loopbacks, Configure Backbone Area
+
+In this step you will add a loopback to each router.  The loopback is critical for both underlay and overlay control and dataplane operations. 
+
+1. Configure loopback interfaces.
+
+Use the following addresses for each P and PE router, respectively:
+
+Device      |  IP address    
+----------  | :------------ 
+Sr-p001     | 1.1.1.1/32  
+Sr-p002     | 2.2.2.2/32 
+Sr-pe001    | 3.3.3.3/32
+Sr-pe002    | 4.4.4.4/32   
+
+``` bash 
+(config)#
+(config)#int loopback0
+(config-if)#ip address x.x.x.x/32
+(config-if)# commit
+
+```
+
+Review the ip addresses of each P and PE router.
+
+<details><summary><font size=4> Expand for Loopback Validation  </summary><pre><code></font>
+RP/0/RP0/CPU0:sr-p001#show ip int br
+Wed May  7 15:33:42.470 UTC
+
+Interface                      IP-Address      Status          Protocol Vrf-Name
+<strong>Loopback0                      1.1.1.1         Up              Up       default </strong>
+HundredGigE0/0/0/0             10.1.11.1       Up              Up       default
+HundredGigE0/0/0/1             10.1.21.1       Up              Up       default
+HundredGigE0/0/0/2             unassigned      Shutdown        Down     default
+HundredGigE0/0/0/3             10.1.33.1       Up              Up       default
+HundredGigE0/0/0/4             unassigned      Shutdown        Down     default
+HundredGigE0/0/0/5             unassigned      Shutdown        Down     default
+
+</pre></code></details> <br>
+
+2. Configure OSPF on each interface
+
+The interfaces with ip addresses in the default vrf will need to be added to Area 0.  Proceed by going back into the OSPF process, adding the interfaces on each router to Area 0 and commit your changes.  Do this for all P and PE routers.   
+
+Here a configuration snippet from sr-p001:
+```bash
+(config)#router ospf 1 
+(config-ospf)#area 0
+(config-ospf-ar)#int hu0/0/0/0
+(config-ospf-ar-if)#exit
+(config-ospf-ar)#int hu0/0/0/1
+(config-ospf-ar-if)#exit
+(config-ospf-ar)#int hu0/0/0/3
+(config-ospf-ar-if)#exit
+(config-ospf-ar)#int lo0
+(config-ospf-ar-if)#exit
+(config-ospf-ar)#commit
+```
+
+
+
+
+## Step 3 - Add prefix-SID to each router's loopback 
+
+In this step you will configure the prefix SID assoication for each routers loopback interface. 
+
+> [!NOTE] 
+> Ensure that you are under the OSPF process, in area 0 and configuring the loopback interfaces for the prefix-SID. 
+
+
+Here are the prefix-sid absolute values for each node.  Configure these values, commit your changes, and exit configuration mode:
+
+Device      |  Label      
+----------  | :------------ 
+Sr-p001     | 16001   
+Sr-p002     | 16002   
+Sr-pe001    | 16003   
+Sr-pe002    | 16004   
+
+```bash
+(config)#router ospf 1 
+(config-ospf)#area 0
+(config-ospf-ar)#interface loopback0
+(config-ospf-ar-if)#prefix-sid absolute [Label_per_router_per_table]
+(config-ospf-ar-if)#commit
+(config-ospf-ar-if)#end
+```
+<details><summary><font size=4> Expand for prefix-sid details </summary><pre><code></font>
+ This is like an identification label for the node.  In practice, you may use either an index or absolute value for the 
+ prefix-sid.  An index adds the value of the configured index to the starting value of the Global Segment range.  By 
+ default, the range starts at 16000 and goes to 23999, whereas an absolute value is the actual value of the label you 
+ wish to configure. For example, an index of 101 will configure 16101 as the prefix-sid.  And absolute index of 17001 
+ will configure 17001 as the prefix-sid.
+</pre></code></details> <br>
+
+
+## Step 4 - Validate OSPF
+
+Check OSPF adjacencies on each node.  Nodes sr-p001 and sr-p002 should have **three** adjacencies and sr-pe001 and sr-pe002 should have **two**, each.
+
+```bash
+RP/0/RP0/CPU0:sr-p001#sh ospf nei    
+
+* Indicates MADJ interface
+# Indicates Neighbor awaiting BFD session up
+
+Neighbors for OSPF 1
+
+Neighbor ID     Pri   State           Dead Time   Address         Interface
+3.3.3.3         1     FULL/  -        00:00:33    10.1.11.2       HundredGigE0/0/0/0
+    Neighbor is up for 00:03:02
+10.1.22.2       1     FULL/  -        00:00:39    10.1.12.2       HundredGigE0/0/0/1
+    Neighbor is up for 00:02:52
+2.2.2.2         1     FULL/  -        00:00:31    10.1.1.2        HundredGigEt0/0/0/3
+    Neighbor is up for 00:02:54
+```
+
+
+<details><summary><font size=4> Expand for more router results</summary><pre><code></font>
+
+```bash
+RP/0/RP0/CPU0:sr-p002#show ospf nei
+
+* Indicates MADJ interface
+# Indicates Neighbor awaiting BFD session up
+
+Neighbors for OSPF 1
+
+Neighbor ID     Pri   State           Dead Time   Address         Interface
+10.1.22.2       1     FULL/  -        00:00:39    10.1.22.2       HundredGigE0/0/0/0
+    Neighbor is up for 00:03:25
+3.3.3.3         1     FULL/  -        00:00:36    10.1.21.2       HundredGigE0/0/0/1
+    Neighbor is up for 00:03:31
+1.1.1.1         1     FULL/  -        00:00:31    10.1.1.1        HundredGigE0/0/0/3
+    Neighbor is up for 00:03:28
+```
+
+```bash
+RP/0/RP0/CPU0:sr-pe001#sh ospf nei
+
+* Indicates MADJ interface
+# Indicates Neighbor awaiting BFD session up
+
+Neighbors for OSPF 1
+
+Neighbor ID     Pri   State           Dead Time   Address         Interface
+1.1.1.1         1     FULL/  -        00:00:38    10.1.11.1       HundredGigE0/0/0/0
+    Neighbor is up for 00:00:22
+2.2.2.2         1     FULL/  -        00:00:38    10.1.21.1       HundredGigE0/0/0/1
+    Neighbor is up for 00:00:17
+```
+```bash
+RP/0/RP0/CPU0:sr-pe002#show ospf nei
+
+* Indicates MADJ interface
+# Indicates Neighbor awaiting BFD session up
+
+Neighbors for OSPF 1
+
+Neighbor ID     Pri   State           Dead Time   Address         Interface
+2.2.2.2         1     FULL/  -        00:00:37    10.1.22.1       HundredGigE0/0/0/0
+    Neighbor is up for 00:03:50
+1.1.1.1         1     FULL/  -        00:00:35    10.1.12.1       HundredGigE0/0/0/1
+    Neighbor is up for 00:03:51
+
+Total neighbor count: 2
+```
+</pre></code></details> <br>
+
+
+Verify route tables on each node.  Look specifically that on each node you see all the loopback0 addresses of the other three nodes in the route table.   
+
+Here is the partial output of node sr-p001:
+
+```bash
+RP/0/RP0/CPU0:sr-p001#sh ip route
+
+Codes: C - connected, S - static, R - RIP, B - BGP, (>) - Diversion path
+       D - EIGRP, EX - EIGRP external, O - OSPF, IA - OSPF inter area
+       N1 - OSPF NSSA external type 1, N2 - OSPF NSSA external type 2
+       E1 - OSPF external type 1, E2 - OSPF external type 2, E - EGP
+       i - ISIS, L1 - IS-IS level-1, L2 - IS-IS level-2
+       ia - IS-IS inter area, su - IS-IS summary null, * - candidate default
+       U - per-user static route, o - ODR, L - local, G  - DAGR, l - LISP
+       A - access/subscriber, a - Application route
+       M - mobile route, r - RPL, t - Traffic Engineering, (!) - FRR Backup path
+       s - local SRv6 route, z - local IID route
+
+Gateway of last resort is not set
+
+L    1.1.1.1/32 is directly connected, 00:08:25, Loopback0
+O    2.2.2.2/32 [110/3] via 10.1.11.2, 00:02:26, HundredGigE0/0/0/0 (!)
+                [110/2] via 10.1.33.2, 00:02:26, HundredGigE0/0/0/3
+O    3.3.3.3/32 [110/2] via 10.1.11.2, 00:02:26, HundredGigE0/0/0/0
+                [110/3] via 10.1.33.2, 00:02:26, HundredGigE0/0/0/3 (!)
+O    4.4.4.4/32 [110/2] via 10.1.21.2, 00:02:26, HundredGigE0/0/0/1
+                [110/3] via 10.1.33.2, 00:02:26, HundredGigE0/0/0/3 (!)
+C    10.1.11.0/30 is directly connected, 04:31:47, HundredGigE0/0/0/0
+L    10.1.11.1/32 is directly connected, 04:31:47, HundredGigE0/0/0/0
+C    10.1.21.0/30 is directly connected, 04:31:47, HundredGigE0/0/0/1
+L    10.1.21.1/32 is directly connected, 04:31:47, HundredGigE0/0/0/1
+O    10.1.22.0/30 [110/2] via 10.1.21.2, 00:02:26, HundredGigE0/0/0/1
+                  [110/2] via 10.1.33.2, 00:02:26, HundredGigE0/0/0/3
+C    10.1.33.0/30 is directly connected, 04:31:47, HundredGigE0/0/0/3
+L    10.1.33.1/32 is directly connected, 04:31:47, HundredGigE0/0/0/3
 <snip>
-
-Status codes: s suppressed, d damped, h history, * valid, > best
-              i - internal, r RIB-failure, S stale, N Nexthop-discard
-Origin codes: i - IGP, e - EGP, ? - incomplete
-   Network            Next Hop            Metric LocPrf Weight Path
-Route Distinguisher: 3.3.3.3:1001 (default for vrf VPWS:1001)
-Route Distinguisher Version: 4
-*> [1][0000.0000.0000.0000.0000][11001]/120
-                      0.0.0.0                                0 i
-*>i[1][0000.0000.0000.0000.0000][21001]/120
-                      4.4.4.4                       100      0 i
-Route Distinguisher: 4.4.4.4:1001
-Route Distinguisher Version: 3
-*>i[1][0000.0000.0000.0000.0000][21001]/120
-                      4.4.4.4                       100      0 i
-* i                   4.4.4.4                       100      0 i
-Processed 3 prefixes, 4 paths
 ```
+> [!IMPORTANT]
+> the ‘(!)’ at the end of some of the loopback routes.  These are the routes protected by FRR.  These routes are installed in the FIB as a backup route in the event the primary path fails.  With these backup routes, the router does not need to wait for OSPF to reconverge before forwarding packets again.
 
-2. Show the BGP L2VPN table on sr-pe002 - EVPN SAFI
+
+## Step 5 - Validate Segment Routing Labels
+
+All Segment-Routing labels are stored in and advertised to other nodes by the IGP, in our case OSPF.  We can see the labels assigned and validate that SR is running by inspecting both the MPLS forwarding plane and the OSPF opaque database.   
+
+On each router, inspect the MPLS forwarding table:
+
 
 ```bash
-RP/0/RP0/CPU0:sr-pe002#show bgp l2vpn evpn
-Fri May 30 00:07:56.765 UTC
-BGP router identifier 4.4.4.4, local AS number 65001
-<snip>
-Status codes: s suppressed, d damped, h history, * valid, > best
-              i - internal, r RIB-failure, S stale, N Nexthop-discard
-Origin codes: i - IGP, e - EGP, ? - incomplete
-   Network            Next Hop            Metric LocPrf Weight Path
-Route Distinguisher: 3.3.3.3:1001
-Route Distinguisher Version: 3
-*>i[1][0000.0000.0000.0000.0000][11001]/120
-                      3.3.3.3                       100      0 i
-* i                   3.3.3.3                       100      0 i
-Route Distinguisher: 4.4.4.4:1001 (default for vrf VPWS:1001)
-Route Distinguisher Version: 4
-*>i[1][0000.0000.0000.0000.0000][11001]/120
-                      3.3.3.3                       100      0 i
-*> [1][0000.0000.0000.0000.0000][21001]/120
-                      0.0.0.0                                0 i
+RP/0/RP0/CPU0:sr-p001# sh mpls forwarding
 
-Processed 3 prefixes, 4 paths
+Local  Outgoing    Prefix             Outgoing     Next Hop        Bytes       
+Label  Label       or ID              Interface                    Switched    
+------ ----------- ------------------ ------------ --------------- ------------
+16002  Pop         SR Pfx (idx 2)     Hu0/0/0/3    10.1.33.2       0           
+       16002       SR Pfx (idx 2)     Hu0/0/0/0    10.1.11.2       0            (!)
+16003  Pop         SR Pfx (idx 3)     Hu0/0/0/0    10.1.11.2       0           
+       16003       SR Pfx (idx 3)     Hu0/0/0/3    10.1.33.2       0            (!)
+16004  Pop         SR Pfx (idx 4)     Hu0/0/0/1    10.1.21.2       0           
+       16004       SR Pfx (idx 4)     Hu0/0/0/3    10.1.33.2       0            (!)
+24000  Pop         SR Adj (idx 0)     Hu0/0/0/1    10.1.21.2       0           
+24001  Pop         SR Adj (idx 0)     Hu0/0/0/1    10.1.21.2       0           
+       16004       SR Adj (idx 0)     Hu0/0/0/3    10.1.33.2       0            (!)
+24002  Pop         SR Adj (idx 0)     Hu0/0/0/0    10.1.11.2       0           
+24003  Pop         SR Adj (idx 0)     Hu0/0/0/0    10.1.11.2       0           
+       16003       SR Adj (idx 0)     Hu0/0/0/3    10.1.33.2       0            (!)
+24004  Pop         SR Adj (idx 0)     Hu0/0/0/3    10.1.33.2       0           
+24005  Pop         SR Adj (idx 0)     Hu0/0/0/3    10.1.33.2       0           
+       16002       SR Adj (idx 0)     Hu0/0/0/0    10.1.11.2       0            (!)
 ```
 
-<details><summary><font size=4> Expand for EVPN Table Details  </summary><pre><code></font>
-
-```bash
-Route Distinguisher: 3.3.3.3:1001 (default for vrf VPWS:1001)
-```
-This is the circuit's Route Distinguisher on the local router.  The RD is 3.3.3.3:1001 which is broken down into the local router's BGP router-id : circuit EVI number.  This is how we identify the VPN and the PE node.
-```angular2html
-*> [1][0000.0000.0000.0000.0000][11001]/120 0.0.0.0                 0       i 
-*>i[1][0000.0000.0000.0000.0000][21001]/120 4.4.4.4         100     0       i
-```
-These are the 'routes' for this VPN.  Broken down, we see 
-* [1]: BGP EVPN route type 1.  Route Type 1 is always used for VPWS circuits
-* [0000.0000.0000.0000.0000]: Ethernet Segment Identifier for the PE's AC. VPWS is a singular point to point, so there is only one AC per PE.  Hence, all zeros's.
-* [11001] and [21001]: source and target AC identifiers for each PE
-* /120: Administrative Distance for this route.  Default AD for iBGP routes is 120.
-
-The next hop for each 'route' is listed as 0.0.0.0 (local router) and 4.4.4.4 (remote PE node).  The router is smart enough to not route packets that have been sourced on the local AC back to itself, so it will forward all ingress packets to the next hop, 4.4.4.4.
-
-The RD 4.4.4.4:1001 and its associated routes is what is learned from the remote PE, sr-pe002.
-
-BGP also advertises the service labels for each circuit. Traditionally this was done by LDP. To see the labels that are advertised, run the following command on each PE node: <br></pre></code></details>  
-
-
-3. Show BGP L2VPN EVPN table with labels 
-
-```bash
-RP/0/RP0/CPU0:sr-pe001#show bgp l2vpn evpn labels
-<snip>
-Status codes: s suppressed, d damped, h history, * valid, > best
-              i - internal, r RIB-failure, S stale, N Nexthop-discard
-Origin codes: i - IGP, e - EGP, ? - incomplete
-   Network            Next Hop        Rcvd Label      Local Label
-Route Distinguisher: 3.3.3.3:1001 (default for vrf VPWS:1001)
-Route Distinguisher Version: 4
-*> [1][0000.0000.0000.0000.0000][11001]/120
-                      0.0.0.0         nolabel         nolabel
-*>i[1][0000.0000.0000.0000.0000][21001]/120
-                      4.4.4.4         24004           nolabel
-Route Distinguisher: 4.4.4.4:1001
-Route Distinguisher Version: 3
-*>i[1][0000.0000.0000.0000.0000][21001]/120
-                      4.4.4.4         24004           nolabel
-* i                   4.4.4.4         24004           nolabel
-
-Processed 3 prefixes, 4 paths
+In the example output from sr-p001, we see the dynamic adjacency-sid labels assigned to the interfaces that are participating in MPLS forwarding below.  These dynamic labels are in the **24000** and up range. We enabled all interfaces for MPLS forwarding when we configured ‘segment-routing forwarding mpls’ at the global OSPF level then configured all interfaces in the area 0 sub-context.  We also see some adjacencies as protected with the ‘(!)’.  **These are built by FRR TI-LFA**.
 
 ```
-<details><summary><font size=4> Expand for EVPN Table Details with Labels </summary><pre><code></font>
-RD 4.4.4.4:1001 has two routes, one with destination of the local router (its outbound advertisement to neighbors) and one with destination remote PE router 3.3.3.3.  The local router doesnt have a label from the local router's perspective.  This is why there is no label for the local route.  However, we see the service label of 24004 advertised from remote node 3.3.3.3.  Any SR-MPLS packets forwarded from the local router to node 3.3.3.3 for this service will have label 24004 pushed onto the bottom of its label stack. <br></pre></code></details>  
+16002  Pop         SR Pfx (idx 2)     Hu0/0/0/3    10.1.33.2       0           
+       16002       SR Pfx (idx 2)     Hu0/0/0/0    10.1.11.2       0            (!)
+16003  Pop         SR Pfx (idx 3)     Hu0/0/0/0    10.1.11.2       0           
+       16003       SR Pfx (idx 3)     Hu0/0/0/3    10.1.33.2       0            (!)
+16004  Pop         SR Pfx (idx 4)     Hu0/0/0/1    10.1.21.2       0           
+       16004       SR Pfx (idx 4)     Hu0/0/0/3    10.1.33.2       0            (!)
+```
 
-## Step 4: Verify the underlay--MPLS Forwarding
+In addition to the adjacency-sids, we also see the prefix-sids that we configured for interface loopback 0 in OSPF. These prefix-sids are highlighted at the top of the output.  You will see back up paths here as well with outgoing labels to complete the backup LSP.
 
-As mentioned earlier, SR Prefix (and other) labels are stored in the IGP.  We can lookup a service's destination prefix label in OSPF.  Do that on sr-pe001:
+<details><summary><font size=4> Expand for MPLS label table view </summary><pre><code></font>
+ Another view of Segment Routing labels is in the MPLS Label Table, which is the database of all local labels created by 
+ the router, and how it knows them. 
+ Review each router’s label table:
+ 
+ ```bash
+ RP/0/RP0/CPU0:sr-p001#show mpls label table
+Table Label   Owner                           State  Rewrite
+----- ------- ------------------------------- ------ -------
+0     0       LSD(A)                          InUse  Yes
+0     1       LSD(A)                          InUse  Yes
+0     2       LSD(A)                          InUse  Yes
+0     13      LSD(A)                          InUse  Yes
+0     16000   OSPF(A):ospf-1                  InUse  No
+0     24000   OSPF(A):ospf-1                  InUse  Yes
+0     24001   OSPF(A):ospf-1                  InUse  Yes
+0     24002   OSPF(A):ospf-1                  InUse  Yes
+0     24003   OSPF(A):ospf-1                  InUse  Yes
+0     24004   OSPF(A):ospf-1                  InUse  Yes
+0     24005   OSPF(A):ospf-1                  InUse  Yes
+What we are seeing here is the global SR label database starts at 16000, which is the default value.  Next, we see 24000, which
+is the start of the dynamic label database space.  Labels 24001-24005 are the dynamic labels that were automatically generated
+by the router’s segment routing process and the advertised via the IGP process, OSPF process 1.
+ For even more detailed information of the Label Switch Database (LSD), check the output of ‘show mpls lsd forwarding details’.   
+ ```
+ > [!NOTE]
+ >This command will deliver a lot of data that is outside the scope of this lab, but will give you extra information
+> for future troubleshooting and understanding of the SR-MPLS forwarding plane.
 
-```bash
-RP/0/RP0/CPU0:sr-pe001#show ospf sid-database
-Fri May 30 00:20:20.185 UTC
+ </pre></code></details> <br>
 
-SID Database for ospf 1 with ID 3.3.3.3
+Let's investigate the OSPF SID databaset to ensure we can see our neighbors prefix-sid's for their loopbacks 
+ 
+ ```bash
+ RP/0/RP0/CPU0:sr-p001#show ospf sid-database
+ 
+SID Database for ospf 1 with ID 1.1.1.1
 
 SID          Prefix/Mask
 --------     ------------------
-1            1.1.1.1/32
-2            2.2.2.2/32
-3            3.3.3.3/32               (L)
-4            4.4.4.4/32
-RP/0/RP0/CPU0:sr-pe001#
-
+1            1.1.1.1/32               (L)
+2            2.2.2.2/32               
+3            3.3.3.3/32               
+4            4.4.4.4/32 
 ```
-You should output similar to the above
 
-Because we know our global sid database range starts at 16000, we can deduce that the prefix-sid for prefix 4.4.4.4/32 is 16004.  Index 3 is the label for the local router's prefix, 3.3.3.3/32, as denoted by the '(L)'.
-
-We know the remote label was learned via BGP.  We can discover the label assigned for the service by the local router by reviewing the MPLS forwarding table. On node <b>sr-pe001</b>:
-
-```bash
-RP/0/RP0/CPU0:sr-pe001#show mpls forwarding
-Fri May 30 00:24:32.718 UTC
-Local  Outgoing    Prefix             Outgoing     Next Hop        Bytes
-Label  Label       or ID              Interface                    Switched
------- ----------- ------------------ ------------ --------------- ------------
-16001  Pop         SR Pfx (idx 1)     Hu0/0/0/0    10.1.11.1       0
-       16001       SR Pfx (idx 1)     Hu0/0/0/1    10.1.21.1       0            (!)
-16002  Pop         SR Pfx (idx 2)     Hu0/0/0/1    10.1.21.1       0
-       16002       SR Pfx (idx 2)     Hu0/0/0/0    10.1.11.1       0            (!)
-16004  16004       SR Pfx (idx 4)     Hu0/0/0/0    10.1.11.1       100
-       16004       SR Pfx (idx 4)     Hu0/0/0/1    10.1.21.1       1696
-24000  Pop         SR Adj (idx 0)     Hu0/0/0/1    10.1.21.1       0
-24001  Pop         SR Adj (idx 0)     Hu0/0/0/1    10.1.21.1       0
-       16004       SR Adj (idx 0)     Hu0/0/0/0    10.1.11.1       0            (!)
-24002  Pop         SR Adj (idx 0)     Hu0/0/0/0    10.1.11.1       0
-24003  Pop         SR Adj (idx 0)     Hu0/0/0/0    10.1.11.1       0
-       16001       SR Adj (idx 0)     Hu0/0/0/1    10.1.21.1       0            (!)
-24004  Pop         PW(EVI=1001 AC-ID=21001)   \
-                                      Hu0/0/0/4.1  point2point     0
-RP/0/RP0/CPU0:sr-pe001#
-
-```
-Let's focus on two sections of this output.
-```bash
-16004 16004     SR Pfx (idx 4) Hu0/0/0/0 10.1.11.1 0
-      16004     SR Pfx (idx 4) Hu0/0/0/1 10.1.21.1 1184
-```
-This is showing us that we have two outgoing interfaces for label 16004, or index 4.  Our egress interfaces are Hu0/0/0/0 and Hu0/0/0/1.  This is due to ECMP and having two equal cost routes from the IGP.  We can also see that we are using Hu0/0/0/1 because Hu0/0/0/0 has zero bytes switched.
-```bash
-24004 Pop       PW(EVI=1001 AC-ID=21001) Hu0/0/0/4.1 point2point 0
-```
-This is the label for the EVPN service we created.  This is our local label and it just happens to be the same as the remote label on node sr-pe002 that we learned from BGP.  This line shows us the EVI, and the remote node's AC-ID and egress interface.
-
-Your output may differ slightly from what is shown above.  Find the egress interface of the sr-pe001 node by finding the non-zero value in the 'Bytes Switched' column of your output.  Remember this interface ID for the next verification Step 5.
-
-## Step 5: Verify the underlay--Packet Capture
-
-Return to the cli of server001.  Start a ping to server002 and let it run:
-```bash
-server001:~$ ping 10.10.1.2
-PING 10.10.1.2 (10.10.1.2): 56 data bytes
-64 bytes from 10.10.1.2: seq=0 ttl=42 time=8.178 ms
-64 bytes from 10.10.1.2: seq=1 ttl=42 time=7.696 ms
-<snip>
-```
-Open the Edge Browser on the remote workstation and log in to CML. Click on the picture of the lab.
-
-<img src="../images/task3_img0.png" width="1200">
-
-Next, right click on the link that corresponds to the interface on sr-pe001's outgoing interface found in Step 4.  We previously identified Hu0/0/0/1 as the outgoing interface in this guide, but yours may differ.  Hu0/0/0/1 of sr-pe001 corresponds to Hu0/0/0/1 in the CML map, so we right-click on Hu0/0/0/1.  In the context menu that pops up, clck 'Packet Capture'.
-
-<img src="../images/task3_img1.png" width="1200">
-
-A Packet Capture tab will appear in the lower pane of the browser page.  Click 'Start'.
-
-<img src="../images/task3_img2.png" width="1200">
-
-Find an MPLS Label Switched Packet and click on it.
-
-<img src="../images/task3_img3.png" width="1200">
-
-In the new frame that populates at the bottom, we can see the contents of that MPLS packet.  Take note of the label stack.  The label stack for this outgoing packet is [16004][24004].  Recall that routers will read the top label of the stack only.  The next hop router, sr-p002 in this case, will get a packet with [16004] at the top of its stack.  sr-p002 will then perform a lookup in its IGP for sr-label 16004.  We established that OSPF's sid-database know that label 16004 corresponds to prefix route 4.4.4.4/32, which is sr-pe002's loopback address.
-
-Now right click on the next hop router's interface that faces sr-pe002.  If the next hop router in your lab is sr-p001, you will be selecting Hu0/0/0/1 of sr-p001.  If your next hop is sr-p002 then you will selecting interface Hu0/0/0/2 of sr-p002.  Repeat the packet capture procedure for this interface.
-
-<img src="../images/task3_img4.png" width="1200">
-
-Node sr-p002 is the penultimate hop for sr-pe002.  Accordingly, sr-p002 has removed the label [16004] from the label stack and only [24004] remains.  When sr-pe002 receives the packet with label [24004] it will know that this packet belongs to the EVPN service with EVI 1001, AC-ID 21001.
-
-Return to server001 and stop the ping.
-
-
-[Prev Task](..task2/task2.md) | [Next Task](../task4/task4.md) 
+ As you can see from the output above, all SIDs we configured on all the routers are present in the OSPF sid-database. You should see similar output on all routers.
+ 
+[Prev Task](../README.md) | [Next Task](../task2/task2.md) 

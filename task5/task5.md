@@ -167,11 +167,11 @@ Return to the Edge web browser and open the lab in CML.  Righ click on the link 
 
 You will see MPLS Switched Packets populate the capture pane.  Some of these packets may be return packets from sr-pe002.  Click on one of the packets and review the label stack.  You should see labels in the header with 16002 followed by 16004.  recall that node sr-pe001 will strip the first label, 16001, from the label stack before it forwards the packet to sr-p001 because label 16001 is the next hop from sr-pe001.
 
-![img](../images/task5_img0.png)
+![img](../images/task5_img0.jpg)
 
 If you find a packet with a single label value in the label stack with a dynamic service label, then you have selected a return pack and you should click on another packet for review.
 
-![img](../images/task5_img1.png)
+![img](../images/task5_img1.jpg)
 
 That's it!  Congratulations.  You've successfully built an Underlay, Overlay, two EVPN services, and an SR-TE policy.  There's much more to learn, but we hope we have created a good understanding for you, and that you have a good starting point with this lab.
 

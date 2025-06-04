@@ -349,25 +349,25 @@ PING 10.10.1.2 (10.10.1.2): 56 data bytes
 ```
 Open the Edge Browser on the remote workstation and log in to CML. Click on the picture of the lab.
 
-<img src="../images/task3_img0.png" width="1200">
+<img src="../images/task3_img0.jpg" width="1200">
 
 Next, right click on the link that corresponds to the interface on sr-pe001's outgoing interface found in Step 4.  We previously identified Hu0/0/0/1 as the outgoing interface in this guide, but yours may differ.  Hu0/0/0/1 of sr-pe001 corresponds to Hu0/0/0/1 in the CML map, so we right-click on Hu0/0/0/1.  In the context menu that pops up, clck 'Packet Capture'.
 
-<img src="../images/task3_img1.png" width="1200">
+<img src="../images/task3_img1.jpg" width="1200">
 
 A Packet Capture tab will appear in the lower pane of the browser page.  Click 'Start'.
 
-<img src="../images/task3_img2.png" width="1200">
+<img src="../images/task3_img2.jpg" width="1200">
 
 Find an MPLS Label Switched Packet and click on it.
 
-<img src="../images/task3_img3.png" width="1200">
+<img src="../images/task3_img3.jpg" width="1200">
 
 In the new frame that populates at the bottom, we can see the contents of that MPLS packet.  Take note of the label stack.  The label stack for this outgoing packet is [16004][24004].  Recall that routers will read the top label of the stack only.  The next hop router, sr-p002 in this case, will get a packet with [16004] at the top of its stack.  sr-p002 will then perform a lookup in its IGP for sr-label 16004.  We established that OSPF's sid-database know that label 16004 corresponds to prefix route 4.4.4.4/32, which is sr-pe002's loopback address.
 
 Now right click on the next hop router's interface that faces sr-pe002.  If the next hop router in your lab is sr-p001, you will be selecting Hu0/0/0/1 of sr-p001.  If your next hop is sr-p002 then you will selecting interface Hu0/0/0/2 of sr-p002.  Repeat the packet capture procedure for this interface.
 
-<img src="../images/task3_img4.png" width="1200">
+<img src="../images/task3_img4.jpg" width="1200">
 
 Node sr-p002 is the penultimate hop for sr-pe002.  Accordingly, sr-p002 has removed the label [16004] from the label stack and only [24004] remains.  When sr-pe002 receives the packet with label [24004] it will know that this packet belongs to the EVPN service with EVI 1001, AC-ID 21001.
 

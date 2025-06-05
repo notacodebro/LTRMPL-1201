@@ -17,14 +17,10 @@ In this lab you will learn how to configure a four-node transport network with a
 The lab is built with structured tasks so that you may build the completed segment routed network. 
 
 [Task 1 - OSPF Underlay ](task1/task1.md)   
-[Task 1a - ISIS Underlay ](task1a/task1a.md) *optional underlay*   
 [Task 2 - MP-BGP  ](task2/task2.md)   
 [Task 3 - EVPN Services ](task3/task3.md)   
 [Task 4 - Service VPN - OSPF routing ](task4/task4.md)  
 [Task 5 - SR Traffic Engineering ](task5/task5.md) 
-> [!NOTE]
-> BONUS! [Task 6 - TBD ](task6/task6.md)   
-
  
 # The Topology 
 The network consists of four XR9kv nodes that have a base set of configuration applied.  However, there are no routing protocols or other services configured on any of the nodes in the network. It is your job to properly configure the routing protocol (OSPF) and Multiprotocol BGP(MP-BGP). After the underlay is configured, you may configure a L2VPN service between two nodes that are directly connected to the XRv routers that are acting as Provider Edge (PE) routers.  You may test the service by pinging from one node to the other with the test nodes provided.

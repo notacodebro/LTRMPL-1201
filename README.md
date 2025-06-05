@@ -6,7 +6,7 @@
 
 <font size=4><b>Welcome to SR-MPLS 101 - LTRMPL-1201! </b></font>
 
-This lab was created to provide a *minimal* approach to learning segment routing and some of the foudational concepts around it. 
+This lab was created to provide a *minimal* approach to learning segment routing and to instill foundational concepts.  
 
 In this lab you will learn how to configure a four-node transport network with an SR-MPLS with MP-BGP in support of L2 EVPN overlay services.  Along the way you will also verify and troubleshoot your lab network so that you can better operate the SR-MPLS network and L2 EVPN services for Day 2 operations.
 
@@ -32,7 +32,7 @@ The network consists of four XR9kv nodes that have a base set of configuration a
 <img src="images/clus-log-topo.png" width="1200">
 
 # Lab Details 
-There is my lab. There are many like it, but this one is mine...
+This is my lab. There are many like it, but this one is mine...
 
 Your lab is yours and yours alone, so all resources are dedicated per-person. IP addresses and login credentials are as follows:   
 

@@ -25,7 +25,7 @@ On sr-pe001:
 (config-l2vpn)#xconnect group routers
 (config-l2vpn-xc)#p2p UNTAGGED
 (config-l2vpn-xc-p2p)#interface hu0/0/0/2.1
-(config-l2vpn-xc-p2p)#neighbor evpn evi 1002 target 21002
+(config-l2vpn-xc-p2p)#neighbor evpn evi 1002 target 21002 source 11002
 (config-l2vpn-xc-p2p-pw)#commit
 (config-l2vpn-xc-p2p-pw)#end
 ```
@@ -41,7 +41,7 @@ On sr-pe002:
 (config-l2vpn)#xconnect group routers
 (config-l2vpn-xc)#p2p UNTAGGED
 (config-l2vpn-xc-p2p)#interface hu0/0/0/2.1
-(config-l2vpn-xc-p2p)#neighbor evpn evi 1002 target 11002
+(config-l2vpn-xc-p2p)#neighbor evpn evi 1002 target 11002 source 21002
 (config-l2vpn-xc-p2p-pw)#commit
 (config-l2vpn-xc-p2p-pw)#end
 ```

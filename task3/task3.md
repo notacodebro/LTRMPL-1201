@@ -18,9 +18,9 @@ To complete this task, we need to create an attachment circuit for each device a
 Endpoint    |  Port  | Switch   |  Port |
 ----------  | ------ | -------  | ------
 server001   | eth0   | sr-pe001 | Hu0/0/0/4
-server002   | eth0   | sr-pe001 | Hu0/0/0/4
+server002   | eth0   | sr-pe002 | Hu0/0/0/4
 sr-rtr001   | Gi0/2  | sr-pe001 | Hu0/0/0/2
-sr-rtr002   | Gi0/2  | sr-pe001 | Hu0/0/0/2
+sr-rtr002   | Gi0/2  | sr-pe002 | Hu0/0/0/2
 
 
 Linux server circuit information:

@@ -11,16 +11,16 @@ EVI:  EVPN Virtual Identifier.  This is the unique global identifier for an EVPN
 
 Both PE nodes in this network have two endpoints connected to them.  One endpoint type is a linux server, the other is an IOS-XE L3 switch.  Both linux servers need to talk to each other, and both switches need to talk to each other, but the linux hosts cannot talk to the switches.
 
-To complete this task, we need to create an attachment circuit for each device and an ethernet VPN(EVPN overlay) between the linux hosts and another between the switches.  We will also need to verify the underlay and the overlay is working correctly.
+To complete this task, we need to create an attachment circuit for each device and an ethernet VPN (EVPN overlay) between the linux hosts and another between the switches.  We will also need to verify the underlay and the overlay is working correctly.
 
 ### Important endpoint to switch mappings
 
-Endpoint    |  Port  | Switch   |  Port |
+Endpoint    |  Port  | Router   |  Port |
 ----------  | ------ | -------  | ------
 server001   | eth0   | sr-pe001 | Hu0/0/0/4
-server002   | eth0   | sr-pe001 | Hu0/0/0/4
+server002   | eth0   | sr-pe002 | Hu0/0/0/4
 sr-rtr001   | Gi0/2  | sr-pe001 | Hu0/0/0/2
-sr-rtr002   | Gi0/2  | sr-pe001 | Hu0/0/0/2
+sr-rtr002   | Gi0/2  | sr-pe002 | Hu0/0/0/2
 
 
 Linux server circuit information:
@@ -64,6 +64,7 @@ Now that the PE routers will know which ingress traffic will belong to this serv
 (config-l2vpn-xc-p2p)#int hu0/0/0/4.1
 (config-l2vpn-xc-p2p)#neighbor evpn evi 1001 target 21001 source 11001
 (config-l2vpn-xc-p2p-pw)#commit
+(config-l2vpn-xc-p2p-pw)#end
 ```
 
 2. Create xconnect circuit and EVPN encapsulation on sr-pe002 
@@ -75,6 +76,7 @@ Now that the PE routers will know which ingress traffic will belong to this serv
 (config-l2vpn-xc-p2p)#interface HundredGigE0/0/0/4.1
 (config-l2vpn-xc-p2p)#neighbor evpn evi 1001 target 11001 source 21001
 (config-l2vpn-xc-p2p-pw)#commit
+(config-l2vpn-xc-p2p-pw)#end
 ```
 
 
@@ -99,12 +101,12 @@ servers    UNTAGGED   UP   Hu0/0/0/4.1            UP       EVPN 1001,11001,3.3.3
 ----------------------------------------------------------------------------------------
 RP/0/RP0/CPU0:sr-pe002#
 ```
-notice that each segment has an ST of *UP*. 
+notice that each segment has an ST (state) of *UP*. 
 
 
 2. Validate the EVPN on the servers
 
-For this step you will log into each server via SSH with Putty utilizing the provided password in the main page(cisco). Once logged in, validate the IP address and send 3 pings to the respective server. 
+For this step you will log into each server via SSH with Putty utilizing the provided password in the main page (cisco). Once logged in, validate the IP address and send 3 pings to the respective server. 
 
 ```bash
 ip address show dev eth0
@@ -119,7 +121,7 @@ You should have output similar to below, verifying eth0's network facing the PE:
     inet6 fe80::5054:ff:fe1c:e353/64 scope link 
        valid_lft forever preferred_lft forever
 ```
-Ping the server002's eth0 interface:
+Ping server002's eth0 interface from server001:
 
 ```bash
 server001:~$ ping 10.10.1.2 -c 3
@@ -218,15 +220,18 @@ Processed 3 prefixes, 4 paths
 
 <details><summary><font size=4> Expand for EVPN Table Details  </summary><pre><code></font>
 
-```bash
-Route Distinguisher: 3.3.3.3:1001 (default for vrf VPWS:1001)
+From sr-pe001's output:
+```diff
++Route Distinguisher: 3.3.3.3:1001 (default for vrf VPWS:1001)
 ```
-This is the circuit's Route Distinguisher on the local router.  The RD is 3.3.3.3:1001 which is broken down into the 
+This is the circuit's Route Distinguisher on the local router.  The RD is 3.3.3.3:1001, which is broken down as the 
 local router's BGP router-id : circuit EVI number.  This is how we identify the VPN and the PE node.
-```angular2html
+
+<pre style="color: #228b22;"><code>
 *> [1][0000.0000.0000.0000.0000][11001]/120 0.0.0.0                 0       i 
 *>i[1][0000.0000.0000.0000.0000][21001]/120 4.4.4.4         100     0       i
-```
+</code></pre>
+
 These are the 'routes' for this VPN.  Broken down, we see 
 * [1]: BGP EVPN route type 1.  Route Type 1 is always used for VPWS circuits
 * [0000.0000.0000.0000.0000]: Ethernet Segment Identifier for the PE's AC. VPWS is a singular point to point, so 

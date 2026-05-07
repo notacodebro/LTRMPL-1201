@@ -1,6 +1,6 @@
 # Configure MB-BGP to support EVPN Services
 
-BGP is used in SR-MPLS for a number of functions, namely service and link-state advertisements between nodes and inter-AS domains.  In this lab we will be using MP-BGP to advertise L2EVPN services and the service labels between our PE routers.  We will configure one P router(**sr-p001**) as the Route-Reflector, and the PE routers will connect to it to exchange service information.   
+BGP is used in SR-MPLS for a number of functions, namely service and link-state advertisements between nodes and inter-AS domains.  In this lab we will be using MP-BGP to advertise L2EVPN services and the service labels between our PE routers.  We will configure our P routers(**sr-p001 and sr-p002**) as Route-Reflectors, and the PE routers will connect to them to exchange service information.   Note this is a minimal configuration for use in this lab.  You may want to use more advanced settings in a production environment.
 
 
 
@@ -26,7 +26,6 @@ On sr-p001, we will use BGP’s route-reflector feature to avoid the iBGP requir
 (conf-bgp)#neighbor 3.3.3.3 use neighbor-group RR-CLIENT
 (conf-bgp)#neighbor 4.4.4.4 use neighbor-group RR-CLIENT
 (conf-bgp)#commit
-(conf-bgp)#end
 
 ```
 We will have two Route-Reflectors in this AS.  We need to configure a Cluster-ID when we peer them with each other to guarantee proper route advertisements
@@ -63,7 +62,7 @@ config-bgp-nbrgrp)#remote-as 65001
 (conf-bgp)#end
 
 ```
-We will have two Route-Reflectors in this AS.  We need to configure a Cluster-ID when we peer them with each other to guarantee proper route advertisements
+This is our second Route-Reflectors in this AS.  We need to configure a Cluster-ID when we peer it with the other RR to guarantee proper route advertisements
 
 ```bash
 (config-bgp)#neighbor-group RR-CLUSTER
@@ -109,7 +108,7 @@ Neighbor        Spk    AS MsgRcvd MsgSent       TblVer  InQ OutQ  Up/Down  St/Pf
 4.4.4.4           0 65001       0       0            0    0    0 00:00:00  Active
 ```
 
-Each BGP session should be in the **Active** state with each P router having an active peering adjacency.  
+Each BGP session to the PE routers should be in the **Active** state with each P router having an established peering adjacency.  
 
 ## Step 2 - Configure sr-pe001 and sr-pe002
 
@@ -215,8 +214,9 @@ Neighbor        Spk    AS MsgRcvd MsgSent       TblVer  InQ OutQ  Up/Down  St/Pf
 ----------  | ------------ 
 sr-p001     | sr-pe001
 sr-p001     | sr-pe002
+sr-p001     | sr-p002
 sr-p002     | sr-pe001
 sr-p002     | sr-pe002
-sr-p001     | sr-p002
+sr-p002     | sr-p001
 
 [Prev Task](../task1/task1.md) | [Next Task](../task3/task3.md) 

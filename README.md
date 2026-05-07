@@ -42,16 +42,16 @@ Your lab is yours and yours alone, so all resources are dedicated per-person. IP
 
 Device      |  Address              | Username  | Password      | Type  
 ----------  | :------------         | :--------:| ----------:   | ----------:
-sr-p001     | 198.19.128.50         | admin     |   cisco       | xr9kv
-sr-p002     | 198.19.128.51         | admin     |   cisco       | xr9kv
-sr-pe001    | 198.19.128.52         | admin     |   cisco       | xr9kv
-sr-pe002    | 198.19.128.53         | admin     |   cisco       | xr9kv
+sr-p001     | 198.19.128.50         | admin     |   cisco       | 8102-64H
+sr-p002     | 198.19.128.51         | admin     |   cisco       | 8102-64H
+sr-pe001    | 198.19.128.52         | admin     |   cisco       | 8102-64H
+sr-pe002    | 198.19.128.53         | admin     |   cisco       | 8102-64H
 sr-rtr001   | 198.18.128.60         | admin     |   cisco       | IOSv
 sr-rtr002   | 198.18.128.61         | admin     |   cisco       | IOSv
 server001   | 198.18.128.70         | admin     |   cisco       | Linux
 server002   | 198.18.128.71         | admin     |   cisco       | Linux
 cml001      | https://198.18.128.100| admin     |   C1sco12345  | CML node
-webrdp      | 198.18.133.11         | root      |   C1sco12345  | xr9kv
+webrdp      | 198.18.133.11         | Administrator     |   C1sco12345  | Windows Jump Host
 
 
 ## Lab Connectivity 

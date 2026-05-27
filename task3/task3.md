@@ -11,11 +11,11 @@ EVI:  EVPN Virtual Identifier.  This is the unique global identifier for an EVPN
 
 Both PE nodes in this network have two endpoints connected to them.  One endpoint type is a linux server, the other is an IOS-XE L3 switch.  Both linux servers need to talk to each other, and both switches need to talk to each other, but the linux hosts cannot talk to the switches.
 
-To complete this task, we need to create an attachment circuit for each device and an ethernet VPN(EVPN overlay) between the linux hosts and another between the switches.  We will also need to verify the underlay and the overlay is working correctly.
+To complete this task, we need to create an attachment circuit for each device and an ethernet VPN (EVPN overlay) between the linux hosts and another between the switches.  We will also need to verify the underlay and the overlay is working correctly.
 
 ### Important endpoint to switch mappings
 
-Endpoint    |  Port  | Switch   |  Port |
+Endpoint    |  Port  | Router   |  Port |
 ----------  | ------ | -------  | ------
 server001   | eth0   | sr-pe001 | Hu0/0/0/4
 server002   | eth0   | sr-pe002 | Hu0/0/0/4
@@ -64,6 +64,7 @@ Now that the PE routers will know which ingress traffic will belong to this serv
 (config-l2vpn-xc-p2p)#int hu0/0/0/4.1
 (config-l2vpn-xc-p2p)#neighbor evpn evi 1001 target 21001 source 11001
 (config-l2vpn-xc-p2p-pw)#commit
+(config-l2vpn-xc-p2p-pw)#end
 ```
 
 2. Create xconnect circuit and EVPN encapsulation on sr-pe002 
@@ -75,6 +76,7 @@ Now that the PE routers will know which ingress traffic will belong to this serv
 (config-l2vpn-xc-p2p)#interface HundredGigE0/0/0/4.1
 (config-l2vpn-xc-p2p)#neighbor evpn evi 1001 target 11001 source 21001
 (config-l2vpn-xc-p2p-pw)#commit
+(config-l2vpn-xc-p2p-pw)#end
 ```
 
 
@@ -99,12 +101,12 @@ servers    UNTAGGED   UP   Hu0/0/0/4.1            UP       EVPN 1001,11001,3.3.3
 ----------------------------------------------------------------------------------------
 RP/0/RP0/CPU0:sr-pe002#
 ```
-notice that each segment has an ST of *UP*. 
+notice that each segment has an ST (state) of *UP*. 
 
 
 2. Validate the EVPN on the servers
 
-For this step you will log into each server via SSH with Putty utilizing the provided password in the main page(cisco). Once logged in, validate the IP address and send 3 pings to the respective server. 
+For this step you will log into each server via SSH with Putty utilizing the provided password in the main page (cisco). Once logged in, validate the IP address and send 3 pings to the respective server. 
 
 ```bash
 ip address show dev eth0
@@ -119,7 +121,7 @@ You should have output similar to below, verifying eth0's network facing the PE:
     inet6 fe80::5054:ff:fe1c:e353/64 scope link 
        valid_lft forever preferred_lft forever
 ```
-Ping the server002's eth0 interface:
+Ping server002's eth0 interface from server001:
 
 ```bash
 server001:~$ ping 10.10.1.2 -c 3
@@ -218,15 +220,16 @@ Processed 3 prefixes, 4 paths
 
 <details><summary><font size=4> Expand for EVPN Table Details  </summary><pre><code></font>
 
-```bash
+From sr-pe001's output:
+<span style="color: green; font-family: monospace;">
 Route Distinguisher: 3.3.3.3:1001 (default for vrf VPWS:1001)
-```
-This is the circuit's Route Distinguisher on the local router.  The RD is 3.3.3.3:1001 which is broken down into the 
+</span>
+This is the circuit's Route Distinguisher on the local router.  The RD is 3.3.3.3:1001, which is broken down as the 
 local router's BGP router-id : circuit EVI number.  This is how we identify the VPN and the PE node.
-```angular2html
+<span style="color: green; font-family: monospace;">
 *> [1][0000.0000.0000.0000.0000][11001]/120 0.0.0.0                 0       i 
 *>i[1][0000.0000.0000.0000.0000][21001]/120 4.4.4.4         100     0       i
-```
+</span>
 These are the 'routes' for this VPN.  Broken down, we see 
 * [1]: BGP EVPN route type 1.  Route Type 1 is always used for VPWS circuits
 * [0000.0000.0000.0000.0000]: Ethernet Segment Identifier for the PE's AC. VPWS is a singular point to point, so 
@@ -242,7 +245,7 @@ packets to the next hop, 4.4.4.4.
 The RD 4.4.4.4:1001 and its associated routes is what is learned from the remote PE, sr-pe002.
 
 BGP also advertises the service labels for each circuit. Traditionally this was done by LDP. To see the labels that 
-are advertised, run the following command on each PE node: <br></pre></code></details>  
+are advertised, execute the next step below. <br></pre></code></details>  
 
 
 3. Show BGP L2VPN EVPN table with labels 
@@ -270,16 +273,27 @@ Processed 3 prefixes, 4 paths
 
 ```
 <details><summary><font size=4> Expand for EVPN Table Details with Labels </summary><pre><code></font>
-RD 4.4.4.4:1001 has two routes, one with destination of the local router (its outbound advertisement to neighbors) and 
-one with destination remote PE router 3.3.3.3.  The local router doesnt have a label from the local router's perspective.  
-This is why there is no label for the local route.  However, we see the service label of 24004 advertised from remote 
-node 3.3.3.3.  Any SR-MPLS packets forwarded from the local router to node 3.3.3.3 for this service will have label 24004
-pushed onto the bottom of its label stack. <br></pre></code></details>  
+<span style="color: green; font-type: monospace">
+Route Distinguisher: 3.3.3.3:1001 (default for vrf VPWS:1001)
+Route Distinguisher Version: 4
+*> [1][0000.0000.0000.0000.0000][11001]/120
+                      0.0.0.0         nolabel         nolabel
+*>i[1][0000.0000.0000.0000.0000][21001]/120
+                      4.4.4.4         24004           nolabel
+                      </span>
+RD 3.3.3.3:1001 has two routes, one with destination of the local router and one with destination remote PE router 4.4.4.4.  The remote destination was learned via BGP.  The local route doesnt have a label from the local router's perspective.  This is why there is no label for the local route.  
+<span style="color: green; font-type: monospace">
+Route Distinguisher: 4.4.4.4:1001
+Route Distinguisher Version: 3
+*>i[1][0000.0000.0000.0000.0000][21001]/120
+                      4.4.4.4         24004           nolabel
+* i                   4.4.4.4         24004           nolabel
+</span>
+RD 4.4.4.4:1001 is the routes advertised from remote PE 4.4.4.4.  SR Service Label 24004 has been advertised by the remote node for this RD.  Any SR-MPLS packets forwarded from the local router to node 4.4.4.4 for this service will have label 24004 pushed onto the bottom of its label stack prior to the next hop labels (ex: 16004) being pushed. <br></pre></code></details>  
 
 ## Step 4: Verify the underlay--MPLS Forwarding
 
 As mentioned earlier, SR Prefix (and other) labels are stored in the IGP.  We can lookup a service's destination prefix label in OSPF.  Do that on sr-pe001:
-
 ```bash
 RP/0/RP0/CPU0:sr-pe001#show ospf sid-database
 Fri May 30 00:20:20.185 UTC
@@ -325,17 +339,21 @@ RP/0/RP0/CPU0:sr-pe001#
 
 ```
 Let's focus on two sections of this output.
-```bash
+<pre><code>
+<span style="color: green; font-type: monospace">
 16004 16004     SR Pfx (idx 4) Hu0/0/0/0 10.1.11.1 0
       16004     SR Pfx (idx 4) Hu0/0/0/1 10.1.21.1 1184
-```
+</span>
+</code></pre>
 This is showing us that we have two outgoing interfaces for label 16004, or index 4.  Our egress interfaces are Hu0/0/0/0 and Hu0/0/0/1.  This is due to ECMP and having two equal cost routes from the IGP.  We can also see that we are using Hu0/0/0/1 because Hu0/0/0/0 has zero bytes switched.
-```bash
+<pre><code>
+<span style="color: green; font-type: monospace">
 24004 Pop       PW(EVI=1001 AC-ID=21001) Hu0/0/0/4.1 point2point 0
-```
-This is the label for the EVPN service we created.  This is our local label and it just happens to be the same as the remote label on node sr-pe002 that we learned from BGP.  This line shows us the EVI, and the remote node's AC-ID and egress interface.
+</span>
+</code></pre>
+This is the label for the EVPN service we created.  This is our local label and it just happens to be the same as the remote label on node sr-pe002 that we learned from BGP.  This line shows us the EVI, the remote node's AC-ID and the local egress interface.
 
-Your output may differ slightly from what is shown above.  Find the egress interface of the sr-pe001 node by finding the non-zero value in the 'Bytes Switched' column of your output.  Remember this interface ID for the next verification Step 5.
+Your output may differ slightly from what is shown above.  Find the egress interface of the sr-pe001 node by finding the non-zero value in the 'Bytes Switched' column of your output.  Note this interface ID for the next verification Step 5.
 
 ## Step 5: Verify the underlay--Packet Capture
 
@@ -351,7 +369,7 @@ Open the Edge Browser on the remote workstation and log in to CML. Click on the 
 
 <img src="../images/task3_img0.jpg" width="1200">
 
-Next, right click on the link that corresponds to the interface on sr-pe001's outgoing interface found in Step 4.  We previously identified Hu0/0/0/1 as the outgoing interface in this guide, but yours may differ.  Hu0/0/0/1 of sr-pe001 corresponds to Hu0/0/0/1 in the CML map, so we right-click on Hu0/0/0/1.  In the context menu that pops up, clck 'Packet Capture'.
+Next, right-click on the link that corresponds to the interface on sr-pe001's outgoing interface found in Step 4.  We previously identified Hu0/0/0/1 as the outgoing interface in this guide, but yours may differ.  Hu0/0/0/1 of sr-pe001 corresponds to Hu0/0/0/1 in the CML map, so we right-click on Hu0/0/0/1.  In the context menu that pops up, click 'Packet Capture'.
 
 <img src="../images/task3_img1.jpg" width="1200">
 
@@ -367,7 +385,7 @@ In the new frame that populates at the bottom, we can see the contents of that M
 
 Now right click on the next hop router's interface that faces sr-pe002.  If the next hop router in your lab is sr-p001, you will be selecting Hu0/0/0/1 of sr-p001.  If your next hop is sr-p002 then you will selecting interface Hu0/0/0/2 of sr-p002.  Repeat the packet capture procedure for this interface.
 
-<img src="../images/task3_img4.jpg" width="1200">
+<img src="../images/task3_img4.png" width="1200">
 
 Node sr-p002 is the penultimate hop for sr-pe002.  Accordingly, sr-p002 has removed the label [16004] from the label stack and only [24004] remains.  When sr-pe002 receives the packet with label [24004] it will know that this packet belongs to the EVPN service with EVI 1001, AC-ID 21001.
 

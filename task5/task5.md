@@ -2,6 +2,34 @@
 
 Welcome to our Bonus Task, SR-TE!  If you have made it this far, then you have been excellent, task-driven students and wasted no time in getting to this section.  We will be configuring an explicit SID list to force packets to traverse  the link between sr-p001 and sr-p002, interface Hun0/0/0/3 on both nodes.  Normally, this link is not used because it would create an extra hop, and SR will always default to following the IGP path toward its destination.  The policy will override the IGP path.  Our policy will only affect traffic in one direction.
 
+Before we begin, lets turn on MPLS Operations and Administration Management (OAM) functionality on each router.  This will let us trace mpls packets through the network.
+
+On each router, enable mpls oam:
+```bash
+(config)#mpls oam
+(config)#commit
+(config)#end
+```
+We can now ping and traceroute through the underlay and verify MPLS end to end.  But for our purposes, we'll see the exact interfaces and labels used to reach an endpoint.
+
+From sr-pe001, execute a traceroute to sr-pe002:
+```angular2html
+sr-pe001#traceroute mpls ipv4 4.4.4.4/32
+
+Tracing MPLS Label Switched Path to 4.4.4.4/32, timeout is 2 seconds
+
+<snip>
+
+Type escape sequence to abort.
+
+  0 10.1.12.2 MRU 1500 [Labels: 16004 Exp: 0]
+L 1 10.1.12.1 MRU 1500 [Labels: implicit-null Exp: 0] 11 ms
+! 2 10.1.22.2 12 ms
+```
+From this output we see the next hop is sr-p002.  Yours may be sr-p001.  The MPLS label that is used to reach 4.4.4.4/32 is 16004, which is the Prefix-sid we assigned to sr-pe002's Loopback0 interface.  The second hop is sr-p002 and the label has now been stripped because this router is also the penultimate hop router.  The packet is then forwarded to sr-pe002 with no label in the third hop.
+
+### We are now ready to create an Explicit SID-List policy
+
 Creating this policy requires three steps:
 1) Create the explicit SID list
 2) Create the policy that will utilize the SID list
@@ -22,7 +50,7 @@ Apply the following configuration on sr-pe001:
 ```
 
 ## Step 2: Configure SR-TE policy
-All policies follow the {color,endpoint} tuple identification standard.  You may create a policy with a friendly name in your configuration, but the router will identify the policy based on the tuple name, represented  as 'srte_c_<color>_ep_<endpoint>'.  We will create a policy with a friendly name then apply the policy in Step 3 using the tuple representation.
+All policies follow the {color,endpoint} tuple identification standard.  You may create a policy with a friendly name in your configuration, but the router will identify the policy based on the tuple name, represented as 'srte_c_[color]_ep_[endpoint]'.  We will create a policy with a friendly name then apply the policy in Step 3 using the tuple representation.
 
 As you  may have observed, you need a color and the endpoint to uniquely identify this policy on the router.  We will use the color '5001' and keep the endpoint ip of '4.4.4.4'.
 <details><summary><font size=4> Expand for SR-TE Policy details  </summary><pre><code></font>
@@ -47,7 +75,7 @@ Apply the following configuration on sr-pe001:
 ```
 
 ## Step 3: Steer service traffic into the policy
-The last step  actually requires two tasks: create a psuedowire-class with the preferred-path marked as the SR-TE policy, and then assign the psuedowire-class to the EVPN.
+The last step actually requires two tasks: create a psuedowire-class with the preferred-path marked as the SR-TE policy, and then assign the psuedowire-class to the EVPN.
 
 Recall that the router will identify the SR-TE policy by the tuple naming standard, not the friendly name of 'my_first_SR-TE_policy'.  Discover the router's name of the policy with a show command:
 
@@ -108,7 +136,7 @@ Apply the following configuration on sr-pe001:
 (config-l2vpn-pwc)#  encapsulation mpls
 (config-l2vpn-pwc-mpls)#   preferred-path sr-te policy srte_c_5001_ep_4.4.4.4
 (config-l2vpn-pwc-mpls)#commit
-(config-l2vpn-pwc-mpls)#end
+(config-l2vpn-pwc-mpls)#root
 ```
 Now that the psuedowire-class has been created, we can assign it to EVI 1001 to change the path of the servers' service:
 ```bash
@@ -127,12 +155,13 @@ Verify 'my_first_SR-TE_policy' is operational on sr-pe001:
 ```bash
 show segment-routing traffic-eng policy color 5001
 ```
-```angular2html
+
+<pre><code>
 SR-TE policy database
 ---------------------
 
 Color: 5001, End-point: 4.4.4.4
-  Name: srte_c_5001_ep_4.4.4.4
+ Name: srte_c_5001_ep_4.4.4.4
   Status:
     Admin: up  Operational: up for 00:10:33 (since Apr 18 19:24:25.162)
   Candidate-paths:
@@ -156,20 +185,51 @@ Color: 5001, End-point: 4.4.4.4
     Invalidation drop enabled: no
     Max Install Standby Candidate Paths: 0
     Path Type: SRMPLSv4
-```
+</code></pre>
+
 <details><summary><font size=4> Expand for SR-TE Policy Validation details  </summary><pre><code></font>
 As we can see with this line,
 > Admin: up  Operational: up for 00:10:33 (since Apr 18 19:24:25.162)
 
 the path is up and operational.
 <br></pre></code></details> 
-Return to the Edge web browser and open the lab in CML.  Righ click on the link Hu0/0/0/0 between sr-pe001 and sr-p001.  select Packet Capture.  In the new tab that opens in the bottom pane, click 'Start'.
+
+### Verify the policy with OAM
+On sr-pe001, we will use MPLS OAM functionality to verify the path and label stack.  Use the binding-sid assigned to your policy to test the path.
+```bash
+sr-pe001#traceroute sr-mpls policy binding-sid 24007 lsp-end-point 4.4.4.4
+
+Tracing MPLS Label Switched Path over SR Policy with binding SID Label [24007], timeout is 2 seconds
+
+<snip>
+
+Type escape sequence to abort.
+
+  0 10.1.11.2 MRU 1500 [Labels: 16002/16004 Exp: 0/0]
+L 1 10.1.11.1 MRU 1500 [Labels: implicit-null/16004 Exp: 0/0] 9 ms
+L 2 10.1.33.2 MRU 1500 [Labels: implicit-null Exp: 0] 10 ms
+! 3 10.1.22.2 12 ms
+```
+<details><summary><font size=4> Expand for OAM Validation details  </summary><pre><code></font>
+Here, we use MPLS OAM functionality to perform a traceroute using the sr-policy we created.  We used the binding-sid the router assigned to our policy that we learned from 'show segment-routing traffic-eng policy color 5001'.  We also provided the sr-pe002's Loopback0 ip address for the lsp-end-point.
+Hop 0 shows the packet going over our Hu0/0/0/0 interface with 16002/16004 in our packet's label stack.  16001 was on top of the stack in the policy, but the router strips this label before sending it to sr-p001.  
+Hop 1 shows the packet at sr-p001. 16002 gets stripped (the implicit-null) and only 16004 remains on the stack.  16002 is the label for sr-p002 so the packet is forwarded to sr-p002 next.  
+Hop 2 is sr-p002, and the final label gets stripped before forwarding to the end-point, sr-pe002. Notice on Hops 1 and 2, these have an 'L' at the beginning of the line.  This shows a labeled output interface was used to reach these hops. Therefore, sr-pe001 and sr-p001's output interfaces inserted SR labels to the packet before forwarding.
+Hop 3 is the end-point returning the final traceroute icmp message.
+</code></pre></details><br>
+
+Return to the Edge web browser and open the lab in CML.  Right-click on the link Hu0/0/0/0 between sr-pe001 and sr-p001.  Select Packet Capture.  In the new tab that opens in the bottom pane, click 'Start'.
 
 You will see MPLS Switched Packets populate the capture pane.  Some of these packets may be return packets from sr-pe002.  Click on one of the packets and review the label stack.  You should see labels in the header with 16002 followed by 16004.  recall that node sr-pe001 will strip the first label, 16001, from the label stack before it forwards the packet to sr-p001 because label 16001 is the next hop from sr-pe001.
 
 ![img](../images/task5_img0.jpg)
+<details><summary><font size=4> Expand for Packet Capture Validation details  </summary><pre><code></font>
+In the above image, you see three labels in the packet's label stack: 16002, 16004, and 24004.  The first two labels are the transit labels; they are used to get from one end of the transport network to the other PE router.  The final label is the dynamically created service label, 24004.  This tells sr-pe002 which EVPN service this packet belongs to.  This is how the PE differentiates packets destined for various services hosted on the router.  sr-pe002 will pop the 24004 label and forward the packet out of interface Hu0/0/0/4.1 toward server002.
 
-If you find a packet with a single label value in the label stack with a dynamic service label, then you have selected a return pack and you should click on another packet for review.
+#### What will be in the return packet's label stack as it leaves sr-pe002?
+</code></pre></details>
+
+If you select a packet with a single label value in the label stack with a dynamic service label as shown below, then you have selected a return packet and you should click on another packet for review.
 
 ![img](../images/task5_img1.jpg)
 

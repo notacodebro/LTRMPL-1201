@@ -12,14 +12,39 @@ sr-pe002
 ```
 
 > [!IMPORTANT] 
-> Changes made in IOS-XR  do not take effect until they have been committed.  If the changes configured are not possible to be committed due to an error, none of the changes will be committed until the error has been fixed.  To commit a configuration, simply type ‘commit’.  To view the reason for an erroneous commit, type ‘commit show’. 
+> Changes made in IOS-XR  do not take effect until they have been committed.  If the changes configured are not possible to be committed due to an error, none of the changes will be committed until the error has been fixed.  To commit a configuration, simply type ‘commit’.  To view the reason for an erroneous commit, type ‘commit show’.  To see what will be committed prior to commit, type 'show configuration' from within config mode.
 
+<details><summary><font size=4> Expand for C/P shortcut</summary><pre><code></font>
+In this lab, if you want to replicate commands that you entered on multiple routers, you can grab a quick copy of the config that you entered on the first router, and paste it into other routers.<br>
+
+After you've completed the commands for the first router and before you commit them, type, 'show configuration'.  This will show only the changes you are about to make.  You can copy this output to other routers to save yourself some time on re-typing the commands for each router.
+``` bash
+RP/0/RP0/CPU0:sr-pe001(config)#router ospf 1
+RP/0/RP0/CPU0:sr-pe001(config-ospf)#fast-reroute per-prefix
+RP/0/RP0/CPU0:sr-pe001(config-ospf)#fast-reroute per-prefix ti-lfa ena
+RP/0/RP0/CPU0:sr-pe001(config-ospf)#network point-to-point
+RP/0/RP0/CPU0:sr-pe001(config-ospf)#segment-routing mpls
+RP/0/RP0/CPU0:sr-pe001(config-ospf)#segment-routing forwarding mpls
+RP/0/RP0/CPU0:sr-pe001(config-ospf)#show configuration
+!! Building configuration...
+!! IOS XR Configuration 24.3.1
+router ospf 1
+ segment-routing mpls
+ network point-to-point
+ segment-routing forwarding mpls
+ fast-reroute per-prefix
+ fast-reroute per-prefix ti-lfa enable
+!
+end
+```
+Copy the above output to all the routers (in config mode) that need it!  Be sure to commit your config after you paste it in.<br>
+</pre></code></details>
 
 ## Step 1 - Configure the OSPF Process on all provider routers
 
-IOS-XR configures its services and protocols at the process level.  For example, all OSPF configurations occur within the ‘router ospf’ process while bridge domains and virtual cross connects are configured under ‘l2vpn’ process.  This is important as we move forward as other operating systems that you may be familiar with may be different and allow you to configure these items under their respective interfaces.
+IOS-XR configures its services and protocols at the process level.  For example, all OSPF configurations occur within the ‘router ospf’ process while bridge domains and virtual cross connects are configured under ‘l2vpn’ process.  This is important as we move forward as other Network Operating Systems that you may be familiar with may be different and allow you to configure these items under their respective interfaces.
 
-1. Configure OSPF process '1'
+1. Configure OSPF process '1' on all routers.  We're showing you how to perform this on one router.  You must replicate this task for all transport routers (sr-p00x and sr-pe00x).
 
 ``` bash 
 (conf)#router ospf 1
@@ -36,7 +61,7 @@ IOS-XR configures its services and protocols at the process level.  For example,
 
 ```
 
-3. Configure Segment routing.
+3. Configure OSPF to use Segment Routing.
 
 ```bash
 
@@ -45,7 +70,8 @@ IOS-XR configures its services and protocols at the process level.  For example,
 ```
 
 > [!IMPORTANT] 
-> You have just configured segment routing! That's it, it's that simple to enable segment routing extension in the routing protocol.    
+> You have just configured segment routing! That's it, it's that simple to enable segment routing extension in the routing protocol.  
+> You configured SR at the global, or process, level of OSPF, this means all areas, all interfaces will participate in SR unless explicitly disabled.  You may also configure SR for only a specific area by running these commands at the area level instead of at the process level.  Further, you can configure SR on only specific interfaces.  For this lab, configuring at the process level is the best course of action.
 
 <details><summary><font size=4> Expand for FRR and TI-LFA Details  </summary><pre><code></font>
 Under the global configuration for OSPF we configure context, enable the fast-reroute (FRR) and topology-independent loop 
@@ -83,7 +109,7 @@ Sr-pe001    | 3.3.3.3/32
 Sr-pe002    | 4.4.4.4/32   
 
 ``` bash 
-(config)#
+#config
 (config)#int loopback0
 (config-if)#ip address x.x.x.x/32
 (config-if)# commit
@@ -257,25 +283,28 @@ Codes: C - connected, S - static, R - RIP, B - BGP, (>) - Diversion path
 
 Gateway of last resort is not set
 
-L    1.1.1.1/32 is directly connected, 00:08:25, Loopback0
-O    2.2.2.2/32 [110/3] via 10.1.11.2, 00:02:26, HundredGigE0/0/0/0 (!)
-                [110/2] via 10.1.33.2, 00:02:26, HundredGigE0/0/0/3
-O    3.3.3.3/32 [110/2] via 10.1.11.2, 00:02:26, HundredGigE0/0/0/0
-                [110/3] via 10.1.33.2, 00:02:26, HundredGigE0/0/0/3 (!)
-O    4.4.4.4/32 [110/2] via 10.1.21.2, 00:02:26, HundredGigE0/0/0/1
-                [110/3] via 10.1.33.2, 00:02:26, HundredGigE0/0/0/3 (!)
-C    10.1.11.0/30 is directly connected, 04:31:47, HundredGigE0/0/0/0
-L    10.1.11.1/32 is directly connected, 04:31:47, HundredGigE0/0/0/0
-C    10.1.21.0/30 is directly connected, 04:31:47, HundredGigE0/0/0/1
-L    10.1.21.1/32 is directly connected, 04:31:47, HundredGigE0/0/0/1
-O    10.1.22.0/30 [110/2] via 10.1.21.2, 00:02:26, HundredGigE0/0/0/1
-                  [110/2] via 10.1.33.2, 00:02:26, HundredGigE0/0/0/3
-C    10.1.33.0/30 is directly connected, 04:31:47, HundredGigE0/0/0/3
-L    10.1.33.1/32 is directly connected, 04:31:47, HundredGigE0/0/0/3
+L    1.1.1.1/32 is directly connected, 00:37:47, Loopback0
+O    2.2.2.2/32 [110/3] via 10.1.11.2, 00:01:05, HundredGigE0/0/0/0 (!)
+                [110/2] via 10.1.33.2, 00:01:05, HundredGigE0/0/0/3
+O    3.3.3.3/32 [110/2] via 10.1.11.2, 00:01:05, HundredGigE0/0/0/0
+                [110/3] via 10.1.33.2, 00:01:05, HundredGigE0/0/0/3 (!)
+O    4.4.4.4/32 [110/2] via 10.1.21.2, 00:01:02, HundredGigE0/0/0/1
+                [110/3] via 10.1.33.2, 00:01:02, HundredGigE0/0/0/3 (!)
+C    10.1.11.0/30 is directly connected, 1d01h, HundredGigE0/0/0/0
+L    10.1.11.1/32 is directly connected, 1d01h, HundredGigE0/0/0/0
+O    10.1.12.0/30 [110/2] via 10.1.11.2, 00:01:05, HundredGigE0/0/0/0
+                  [110/2] via 10.1.33.2, 00:01:05, HundredGigE0/0/0/3
+C    10.1.21.0/30 is directly connected, 1d01h, HundredGigE0/0/0/1
+L    10.1.21.1/32 is directly connected, 1d01h, HundredGigE0/0/0/1
+O    10.1.22.0/30 [110/2] via 10.1.21.2, 00:01:05, HundredGigE0/0/0/1
+                  [110/2] via 10.1.33.2, 00:01:05, HundredGigE0/0/0/3
+C    10.1.33.0/30 is directly connected, 1d01h, HundredGigE0/0/0/3
+L    10.1.33.1/32 is directly connected, 1d01h, HundredGigE0/0/0/3
+
 <snip>
 ```
 > [!IMPORTANT]
-> the ‘(!)’ at the end of some of the loopback routes.  These are the routes protected by FRR.  These routes are installed in the FIB as a backup route in the event the primary path fails.  With these backup routes, the router does not need to wait for OSPF to reconverge before forwarding packets again.
+> Notice the ‘(!)’ at the end of some of the loopback routes.  These are the routes protected by FRR.  These routes are installed in the FIB as a backup route in the event the primary path fails.  With these backup routes, the router does not need to wait for OSPF to reconverge before forwarding packets again.
 
 
 ## Step 5 - Validate Segment Routing Labels
@@ -288,25 +317,29 @@ On each router, inspect the MPLS forwarding table:
 ```bash
 RP/0/RP0/CPU0:sr-p001# sh mpls forwarding
 
-Local  Outgoing    Prefix             Outgoing     Next Hop        Bytes       
-Label  Label       or ID              Interface                    Switched    
+Local  Outgoing    Prefix             Outgoing     Next Hop        Bytes
+Label  Label       or ID              Interface                    Switched
 ------ ----------- ------------------ ------------ --------------- ------------
-16002  Pop         SR Pfx (idx 2)     Hu0/0/0/3    10.1.33.2       0           
+16002  Pop         SR Pfx (idx 2)     Hu0/0/0/3    10.1.33.2       0
        16002       SR Pfx (idx 2)     Hu0/0/0/0    10.1.11.2       0            (!)
-16003  Pop         SR Pfx (idx 3)     Hu0/0/0/0    10.1.11.2       0           
+16003  Pop         SR Pfx (idx 3)     Hu0/0/0/0    10.1.11.2       0
        16003       SR Pfx (idx 3)     Hu0/0/0/3    10.1.33.2       0            (!)
-16004  Pop         SR Pfx (idx 4)     Hu0/0/0/1    10.1.21.2       0           
+16004  Pop         SR Pfx (idx 4)     Hu0/0/0/1    10.1.21.2       0
        16004       SR Pfx (idx 4)     Hu0/0/0/3    10.1.33.2       0            (!)
-24000  Pop         SR Adj (idx 0)     Hu0/0/0/1    10.1.21.2       0           
-24001  Pop         SR Adj (idx 0)     Hu0/0/0/1    10.1.21.2       0           
-       16004       SR Adj (idx 0)     Hu0/0/0/3    10.1.33.2       0            (!)
-24002  Pop         SR Adj (idx 0)     Hu0/0/0/0    10.1.11.2       0           
-24003  Pop         SR Adj (idx 0)     Hu0/0/0/0    10.1.11.2       0           
+24000  Pop         SR Adj (idx 0)     Hu0/0/0/0    10.1.11.2       0
+24001  Pop         SR Adj (idx 0)     Hu0/0/0/0    10.1.11.2       0
        16003       SR Adj (idx 0)     Hu0/0/0/3    10.1.33.2       0            (!)
-24004  Pop         SR Adj (idx 0)     Hu0/0/0/3    10.1.33.2       0           
-24005  Pop         SR Adj (idx 0)     Hu0/0/0/3    10.1.33.2       0           
+24002  Pop         SR Adj (idx 0)     Hu0/0/0/1    10.1.21.2       0
+24003  Pop         SR Adj (idx 0)     Hu0/0/0/1    10.1.21.2       0
+       16004       SR Adj (idx 0)     Hu0/0/0/3    10.1.33.2       0            (!)
+24004  Pop         SR Adj (idx 0)     Hu0/0/0/3    10.1.33.2       0
+24005  Pop         SR Adj (idx 0)     Hu0/0/0/3    10.1.33.2       0
        16002       SR Adj (idx 0)     Hu0/0/0/0    10.1.11.2       0            (!)
+
 ```
+
+>[!NOTE]
+>The sample output may not match exactly what you have.  Some of these labels are dynamically built by the router and yours may differ from these.  This does not mean your output is wrong, you just need to validate the next hops exist in your output, not the label assigned to it.
 
 In the example output from sr-p001, we see the dynamic adjacency-sid labels assigned to the interfaces that are participating in MPLS forwarding below.  These dynamic labels are in the **24000** and up range. We enabled all interfaces for MPLS forwarding when we configured ‘segment-routing forwarding mpls’ at the global OSPF level then configured all interfaces in the area 0 sub-context.  We also see some adjacencies as protected with the ‘(!)’.  **These are built by FRR TI-LFA**.
 
@@ -319,7 +352,7 @@ In the example output from sr-p001, we see the dynamic adjacency-sid labels assi
        16004       SR Pfx (idx 4)     Hu0/0/0/3    10.1.33.2       0            (!)
 ```
 
-In addition to the adjacency-sids, we also see the prefix-sids that we configured for interface loopback 0 in OSPF. These prefix-sids are highlighted at the top of the output.  You will see back up paths here as well with outgoing labels to complete the backup LSP.
+In addition to the adjacency-sids, we also see the prefix-sids that we configured for interface loopback 0 in OSPF. These prefix-sids are highlighted at the top of the output.  You will see back up paths here as well with outgoing labels to complete the backup Label Switch Path (LSP).
 
 <details><summary><font size=4> Expand for MPLS label table view </summary><pre><code></font>
  Another view of Segment Routing labels is in the MPLS Label Table, which is the database of all local labels created by 
@@ -344,7 +377,9 @@ Table Label   Owner                           State  Rewrite
 What we are seeing here is the global SR label database starts at 16000, which is the default value.  Next, we see 24000, which
 is the start of the dynamic label database space.  Labels 24001-24005 are the dynamic labels that were automatically generated
 by the router’s segment routing process and the advertised via the IGP process, OSPF process 1.
- For even more detailed information of the Label Switch Database (LSD), check the output of ‘show mpls lsd forwarding details’.   
+Question:  Why is 16001 not showing in the mpls label table of router sr-p001?  Answer:  16001 is not used to forward any packets because 16001 is sr-p001.  It is used by remote routers to send packets toward sr-p001. Label 24001 **CAN** be used by the local router to forward packets out of a specific interface (more on this later).
+
+ For even more detailed information of the Label Switch Database (LSD), check the output of ‘show mpls lsd forwarding detail’.   
  ```
  > [!NOTE]
  >This command will deliver a lot of data that is outside the scope of this lab, but will give you extra information

@@ -1,6 +1,6 @@
 # Configure IOS routers for OSPF in Server Overlay 
 
-In this Task we will configure a second EVPN VPWS to create a Layer 2 adjacency between two IOS-XE L3 switches.  These switches are pre-configured with a loopback and routed interfaces.  We will need to start an OSPF process and ensure and adjacency forms.  Since these interfaces are in the overlay, the underlay's OSPF domain will not interact with them.
+In this Task we will configure a second EVPN VPWS to create a Layer 2 adjacency between two IOS-XE L3 switches.  These switches are pre-configured with a loopback and routed interfaces.  We will need to start an OSPF process and ensure an adjacency forms.  Since these interfaces are in the overlay, the underlay's OSPF domain will not interact with them.
 
 ## Step 1: Configure EVPN service for IOS-XE L3 Switches
 
@@ -10,7 +10,7 @@ In this Task we will configure a second EVPN VPWS to create a Layer 2 adjacency 
 EVI:  1002
 sr-pe001 AC-ID: 11002
 sr-pe002 AC-ID: 21002
-AC interface ID of both routers: Hu0/0/0/2
+AC interface ID of both PE routers: Hu0/0/0/2
 dot1q tag:  untagged
 ```
 
@@ -168,7 +168,7 @@ Return to the L3 switches to verify the two have become OSPF neighbors.  On sr-r
 ```bash
 show ip ospf neighbor
 ```
-```
+```bash
 Neighbor ID     Pri     State   Dead Time   Address     Interface
 44.44.44.44     1       FULL/DR 00:00:38    10.10.2.2   GigabitEthernet0/2
 ```
@@ -176,7 +176,7 @@ And on sr-rtr002:
 ```bash
 show ip ospf neighbor
 ```
-```an
+```bash
 Neighbor ID     Pri State       Dead Time   Address     Interface
 33.33.33.33     1   FULL/BDR    00:00:35    10.10.2.1   GigabitEthernet0/2
 ```

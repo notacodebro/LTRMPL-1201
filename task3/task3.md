@@ -106,6 +106,8 @@ notice that each segment has an ST (state) of *UP*.
 
 2. Validate the EVPN on the servers
 
+[Appendix:  EVPN Route Types](../appendix/EVPN_Route_Types.md)   
+<br>
 For this step you will log into each server via SSH with Putty utilizing the provided password in the main page (cisco). Once logged in, validate the IP address and send 3 pings to the respective server. 
 
 ```bash
